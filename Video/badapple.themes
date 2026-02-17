@@ -1,0 +1,37 @@
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Background             =   0,   0,   0, 255   
+Sidebar                =   0,   0,   0, 255
+Toolbar                =   0,   0,   0, 255
+Border                 = 255, 255, 255, 255  
+SeparatorLine          = 255, 255, 255, 255
+
+ForegroundPrimary      = 255, 255, 255, 255  
+ForegroundSecondary    = 200, 200, 200, 255   
+ForegroundDisabled     =  80,  80,  80, 255
+
+Hex_Background         =   0,   0,   0, 255
+Hex_OffsetForeground   = 150, 150, 150, 255   
+HexOffset              = 150, 150, 150, 255
+
+Hex_ByteActive         = 255, 255, 255, 255
+Hex_ByteNull           =  40,  40,  40, 255
+Hex_ByteSelected       = 255, 255, 255, 255
+Hex_ByteHighlight      = 255, 255, 255,  60
+Hex_AsciiPrintable     = 255, 255, 255, 255
+Hex_AsciiNonPrintable  =  60,  60,  60, 255
+
+TreeBackground         =   0,   0,   0, 255
+TreeText               = 255, 255, 255, 255
+TreeItemHighlight      = 255, 255, 255,  40
+TreeIconSection        = 255, 255, 255, 255
+TreeIconField          = 200, 200, 200, 255
+
+PropertyBackground     =   0,   0,   0, 255
+PropertyKey            = 180, 180, 180, 255
+PropertyValue          = 255, 255, 255, 255
+
+ConsoleBackground      =   0,   0,   0, 255
+ConsoleForeground      = 255, 255, 255, 255
+ConsoleError           = 255,   0,   0, 255   
+ConsoleSuccess         = 255, 255, 255, 255

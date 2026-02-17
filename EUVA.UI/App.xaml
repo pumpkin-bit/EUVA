@@ -1,0 +1,43 @@
+<!-- // SPDX-License-Identifier: GPL-3.0-or-later -->
+
+<Application x:Class="EUVA.UI.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+               
+                <ResourceDictionary Source="Theming/ThemeResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Window -->
+            <Style TargetType="Window">
+                <Setter Property="Background" Value="{DynamicResource Background}"/>
+            </Style>
+
+            <!-- Menu -->
+            <Style TargetType="Menu">
+                <Setter Property="Background" Value="{DynamicResource MenuBackground}"/>
+                <Setter Property="Foreground" Value="{DynamicResource MenuForeground}"/>
+            </Style>
+
+            <!-- MenuItem -->
+            <Style TargetType="MenuItem">
+                <Setter Property="Background" Value="{DynamicResource MenuBackground}"/>
+                <Setter Property="Foreground" Value="{DynamicResource MenuForeground}"/>
+                <Style.Triggers>
+                    <Trigger Property="IsHighlighted" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource MenuHighlight}"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- ScrollBar -->
+            <Style TargetType="ScrollBar">
+                <Setter Property="Background" Value="{DynamicResource Border}"/>
+            </Style>
+
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

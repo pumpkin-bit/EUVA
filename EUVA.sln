@@ -1,0 +1,36 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EUVA.Core", "EUVA.Core\EUVA.Core.csproj", "{B797D857-ECC8-628C-C866-7D12F64CB8D3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EUVA.Plugins", "EUVA.Plugins\EUVA.Plugins.csproj", "{C6569A62-3B67-DA5F-318C-0A33EC367A2B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EUVA.UI", "EUVA.UI\EUVA.UI.csproj", "{60570BF4-E948-E199-1968-E98401053F57}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B797D857-ECC8-628C-C866-7D12F64CB8D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B797D857-ECC8-628C-C866-7D12F64CB8D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B797D857-ECC8-628C-C866-7D12F64CB8D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B797D857-ECC8-628C-C866-7D12F64CB8D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6569A62-3B67-DA5F-318C-0A33EC367A2B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6569A62-3B67-DA5F-318C-0A33EC367A2B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6569A62-3B67-DA5F-318C-0A33EC367A2B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6569A62-3B67-DA5F-318C-0A33EC367A2B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{60570BF4-E948-E199-1968-E98401053F57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{60570BF4-E948-E199-1968-E98401053F57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{60570BF4-E948-E199-1968-E98401053F57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{60570BF4-E948-E199-1968-E98401053F57}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2ADFACC0-7B2A-4FBF-B7C5-06622F45691F}
+	EndGlobalSection
+EndGlobal

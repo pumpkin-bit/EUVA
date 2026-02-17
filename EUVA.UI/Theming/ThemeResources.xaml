@@ -1,0 +1,111 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- General shell -->
+    <Color  x:Key="Background_Color">#FF1E1E1E</Color>
+    <SolidColorBrush x:Key="Background"          Color="{StaticResource Background_Color}"/>
+
+    <Color  x:Key="Sidebar_Color">#FF252526</Color>
+    <SolidColorBrush x:Key="Sidebar"             Color="{StaticResource Sidebar_Color}"/>
+
+    <Color  x:Key="Toolbar_Color">#FF2D2D30</Color>
+    <SolidColorBrush x:Key="Toolbar"             Color="{StaticResource Toolbar_Color}"/>
+
+    <Color  x:Key="Border_Color">#FF3E3E42</Color>
+    <SolidColorBrush x:Key="Border"              Color="{StaticResource Border_Color}"/>
+
+    <Color  x:Key="SeparatorLine_Color">#FF3E3E42</Color>
+    <SolidColorBrush x:Key="SeparatorLine"       Color="{StaticResource SeparatorLine_Color}"/>
+
+    <!-- Menus -->
+    <Color  x:Key="MenuBackground_Color">#FF2D2D30</Color>
+    <SolidColorBrush x:Key="MenuBackground"      Color="{StaticResource MenuBackground_Color}"/>
+
+    <Color  x:Key="MenuForeground_Color">#FFDCDCDC</Color>
+    <SolidColorBrush x:Key="MenuForeground"      Color="{StaticResource MenuForeground_Color}"/>
+
+    <Color  x:Key="MenuHighlight_Color">#FF3E3E42</Color>
+    <SolidColorBrush x:Key="MenuHighlight"       Color="{StaticResource MenuHighlight_Color}"/>
+
+    <!-- Text / labels -->
+    <Color  x:Key="ForegroundPrimary_Color">#FFDCDCDC</Color>
+    <SolidColorBrush x:Key="ForegroundPrimary"   Color="{StaticResource ForegroundPrimary_Color}"/>
+
+    <Color  x:Key="ForegroundSecondary_Color">#FF999999</Color>
+    <SolidColorBrush x:Key="ForegroundSecondary" Color="{StaticResource ForegroundSecondary_Color}"/>
+
+    <Color  x:Key="ForegroundDisabled_Color">#FF646464</Color>
+    <SolidColorBrush x:Key="ForegroundDisabled"  Color="{StaticResource ForegroundDisabled_Color}"/>
+
+    <!-- Hex view -->
+    <Color  x:Key="Hex_Background_Color">#FF1E1E1E</Color>
+    <SolidColorBrush x:Key="Hex_Background"      Color="{StaticResource Hex_Background_Color}"/>
+
+    <Color  x:Key="Hex_OffsetForeground_Color">#FFA0A0A0</Color>
+    <SolidColorBrush x:Key="Hex_OffsetForeground" Color="{StaticResource Hex_OffsetForeground_Color}"/>
+
+    <Color  x:Key="HexOffset_Color">#FFA0A0A0</Color>
+    <SolidColorBrush x:Key="HexOffset"           Color="{StaticResource HexOffset_Color}"/>
+
+    <!-- Hex_ByteActive  – normal non-zero bytes -->
+    <Color  x:Key="Hex_ByteActive_Color">#FFADD8E6</Color>
+    <SolidColorBrush x:Key="Hex_ByteActive"      Color="{StaticResource Hex_ByteActive_Color}"/>
+
+    <!-- Hex_ByteNull  – zero bytes  (Foggy Hex) -->
+    <Color  x:Key="Hex_ByteNull_Color">#FF505050</Color>
+    <SolidColorBrush x:Key="Hex_ByteNull"        Color="{StaticResource Hex_ByteNull_Color}"/>
+
+    <!-- Hex_ByteSelected  – cursor/caret byte -->
+    <Color  x:Key="Hex_ByteSelected_Color">#FFFFFF00</Color>
+    <SolidColorBrush x:Key="Hex_ByteSelected"    Color="{StaticResource Hex_ByteSelected_Color}"/>
+
+    <!-- Hex_ByteHighlight  – region background tint -->
+    <Color  x:Key="Hex_ByteHighlight_Color">#504EC9B0</Color>
+    <SolidColorBrush x:Key="Hex_ByteHighlight"   Color="{StaticResource Hex_ByteHighlight_Color}"/>
+
+    <Color  x:Key="Hex_AsciiPrintable_Color">#FF90EE90</Color>
+    <SolidColorBrush x:Key="Hex_AsciiPrintable"  Color="{StaticResource Hex_AsciiPrintable_Color}"/>
+
+    <Color  x:Key="Hex_AsciiNonPrintable_Color">#FF646464</Color>
+    <SolidColorBrush x:Key="Hex_AsciiNonPrintable" Color="{StaticResource Hex_AsciiNonPrintable_Color}"/>
+
+    <!-- Structure tree -->
+    <Color  x:Key="TreeBackground_Color">#FF252526</Color>
+    <SolidColorBrush x:Key="TreeBackground"      Color="{StaticResource TreeBackground_Color}"/>
+
+    <Color  x:Key="TreeText_Color">#FFDCDCDC</Color>
+    <SolidColorBrush x:Key="TreeText"            Color="{StaticResource TreeText_Color}"/>
+
+    <Color  x:Key="TreeItemHighlight_Color">#C83E3E42</Color>
+    <SolidColorBrush x:Key="TreeItemHighlight"   Color="{StaticResource TreeItemHighlight_Color}"/>
+
+    <Color  x:Key="TreeIconSection_Color">#FF569CD6</Color>
+    <SolidColorBrush x:Key="TreeIconSection"     Color="{StaticResource TreeIconSection_Color}"/>
+
+    <Color  x:Key="TreeIconField_Color">#FF4EC9B0</Color>
+    <SolidColorBrush x:Key="TreeIconField"       Color="{StaticResource TreeIconField_Color}"/>
+
+    <!-- Property grid -->
+    <Color  x:Key="PropertyBackground_Color">#FF2D2D30</Color>
+    <SolidColorBrush x:Key="PropertyBackground"  Color="{StaticResource PropertyBackground_Color}"/>
+
+    <Color  x:Key="PropertyKey_Color">#FF9CDCFE</Color>
+    <SolidColorBrush x:Key="PropertyKey"         Color="{StaticResource PropertyKey_Color}"/>
+
+    <Color  x:Key="PropertyValue_Color">#FFCE9178</Color>
+    <SolidColorBrush x:Key="PropertyValue"       Color="{StaticResource PropertyValue_Color}"/>
+
+    <!-- Console / log -->
+    <Color  x:Key="ConsoleBackground_Color">#FF1E1E1E</Color>
+    <SolidColorBrush x:Key="ConsoleBackground"   Color="{StaticResource ConsoleBackground_Color}"/>
+
+    <Color  x:Key="ConsoleForeground_Color">#FFDCDCDC</Color>
+    <SolidColorBrush x:Key="ConsoleForeground"   Color="{StaticResource ConsoleForeground_Color}"/>
+
+    <Color  x:Key="ConsoleError_Color">#FFF44747</Color>
+    <SolidColorBrush x:Key="ConsoleError"        Color="{StaticResource ConsoleError_Color}"/>
+
+    <Color  x:Key="ConsoleSuccess_Color">#FF6A9955</Color>
+    <SolidColorBrush x:Key="ConsoleSuccess"      Color="{StaticResource ConsoleSuccess_Color}"/>
+
+</ResourceDictionary>

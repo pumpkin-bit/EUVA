@@ -1,0 +1,33 @@
+Background            =  30,  30,  30, 255
+Sidebar               =  25,  25,  25, 255
+Toolbar               =  35,  35,  35, 255
+Border                =  60,  60,  60, 255
+SeparatorLine         =  50,  50,  50, 255
+
+
+ForegroundPrimary     = 220, 220, 220, 255
+ForegroundSecondary   = 100, 100, 100, 255   
+ForegroundDisabled    =  80,  80,  80, 255
+Hex_Background        =  30,  30,  30, 255    # Color.FromRgb(30, 30, 30)
+HexOffset             = 160, 160, 160, 255    # Color.FromRgb(160, 160, 160)
+Hex_OffsetForeground  = 160, 160, 160, 255
+
+
+Hex_ByteActive        = 173, 216, 230, 255    # Color.FromRgb(173, 216, 230)
+
+
+Hex_ByteNull          =  80,  80,  80, 255    # Color.FromRgb(80, 80, 80)
+
+
+Hex_ByteSelected      = 255, 255,   0, 255    # Color.FromRgb(255, 255, 0)
+
+
+Hex_AsciiPrintable    = 144, 238, 144, 255    # Color.FromRgb(144, 238, 144)
+Hex_AsciiNonPrintable = 100, 100, 100, 255    # Color.FromRgb(100, 100, 100)
+
+Hex_ByteHighlight     = 173, 216, 230,  40
+
+ConsoleBackground     =  20,  20,  20, 255
+ConsoleForeground     = 200, 200, 200, 255
+ConsoleError          = 255,  80,  80, 255
+ConsoleSuccess        = 100, 255, 100, 255

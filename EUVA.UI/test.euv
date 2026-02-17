@@ -1,0 +1,18 @@
+SPDX-License-Identifier: GPL-3.0-or-later
+
+start;
+public:
+_createMethod(GodMode) {
+
+    find(MyFunc = 48 83 EC 28 41 B9 01)
+    MyFunc : nop
+    
+    (MyFunc + 1) : nop
+    (MyFunc + 2) : nop
+    (MyFunc + 3) : nop
+
+    (MyFunc + 4) : mov eax, 999
+    
+    clink: [MyFunc]
+}
+end;

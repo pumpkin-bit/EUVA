@@ -1,0 +1,233 @@
+<!--  SPDX-License-Identifier: GPL-3.0-or-later -->
+
+
+<Window x:Class="EUVA.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:EUVA.UI.Controls"
+        Title="EngineUnpacker Visual Analyzer" 
+        Height="900" Width="1600"
+        Background="#1E1E1E"
+        WindowStartupLocation="CenterScreen"
+        AllowDrop="True"
+        Drop="Window_Drop"
+        DragOver="Window_DragOver">
+
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#333337"/>
+            <Setter Property="Foreground" Value="#DCDCDC"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="2">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#45454A"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#007ACC"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Border" BorderThickness="0,0,0,2" Margin="5,0" Padding="10,5">
+                            <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#4EC9B0"/>
+                                <Setter Property="Foreground" Value="#4EC9B0"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="False">
+                                <Setter Property="Foreground" Value="#808080"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid> <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    <RowDefinition Height="180"/>  </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Background="#2D2D30">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Menu Grid.Column="0" Background="Transparent" Foreground="#DCDCDC">
+                <MenuItem Header="File">
+                    <MenuItem Header="Open..." Click="MenuOpen_Click"/>
+                    <Separator/>
+                    <MenuItem Header="Exit" Click="MenuExit_Click"/>
+                </MenuItem>
+                <MenuItem Header="Analysis">
+                    <MenuItem Header="Run Detectors" Click="MenuRunDetectors_Click"/>
+                    <MenuItem Header="Calculate Entropy" Click="MenuCalculateEntropy_Click"/>
+                </MenuItem>
+                <MenuItem Header="Settings">
+                    <MenuItem Header="Hotkeys">
+                        <MenuItem Header="Select .htk file..." Click="MenuHotkeys_Click"/>
+                    </MenuItem>
+
+                    <MenuItem Header="Themes">
+                        <MenuItem Header="Select Theme..." Click="MenuThemeSelect_Click"/>
+                    </MenuItem>
+                    <MenuItem Header="Watch Script" Click="MenuWatchScript_Click"/>
+                </MenuItem>
+                <MenuItem Header="Start" Click="playvideo_click"/>
+                <MenuItem Header="Endian: LE" x:Name="BtnEndian" Click="BtnEndian_Click"/>
+               <MenuItem Header="Encoding">
+                    <MenuItem Header="Latin-1" Click="ChangeEncoding_Click" Tag="28591"/>
+                    <MenuItem Header="ANSI (Win-1251)" Click="ChangeEncoding_Click" Tag="1251"/>
+                    <MenuItem Header="DOS (CP-866)" Click="ChangeEncoding_Click" Tag="866"/>
+                    <MenuItem Header="Macintosh (Cyrillic)" Click="ChangeEncoding_Click" Tag="10007"/>
+                    <MenuItem Header="UTF-8" Click="ChangeEncoding_Click" Tag="65001"/>
+                </MenuItem>
+                <MenuItem Header="_View">
+                <MenuItem x:Name="MagicModeMenuItem" 
+                        Header="Activate MediaHex" 
+                        IsCheckable="True"
+                        Click="OnMediaHexClick"
+                        InputGestureText="Ctrl+M"/>
+                </MenuItem>
+            </Menu>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,5">
+                <TextBlock x:Name="StatusText" Text="No file loaded" Foreground="#6A9955" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/> <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*"/>   <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="330"/> </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="#252526" BorderBrush="#3E3E42" BorderThickness="0,0,1,0">
+                <controls:StructureTreeView x:Name="StructureTree" StructureSelected="StructureTree_StructureSelected"/>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="#3E3E42"/>
+
+            <Border Grid.Column="2" Background="#1E1E1E">
+                <controls:VirtualizedHexView x:Name="HexView" OffsetSelected="HexView_OffsetSelected"/>
+            </Border>
+
+            <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch" Background="#3E3E42"/>
+
+            <Grid Grid.Column="4" Background="#252526">
+                <TabControl x:Name="RightTabControl" Background="Transparent" BorderThickness="0">
+                    
+                    <TabItem Header="Inspector">
+                        <ListView x:Name="DataInspectorList" Background="#1E1E1E" BorderThickness="0" Foreground="#DCDCDC">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="#3E3E42" BorderThickness="0,0,0,1" Padding="3">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#4EC9B0"/>
+                                            <TextBlock Text="{Binding Value}" Foreground="#9CDCFE" FontSize="11"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </TabItem>
+
+                    <TabItem Header="Search">
+    <Grid Background="#1E1E1E">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="10" Orientation="Vertical">
+            <TextBlock Text="Search Address / Value:" Foreground="#808080" Margin="0,0,0,5" FontSize="11"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="SearchInput" 
+                         Background="#2D2D30" Foreground="#4EC9B0" 
+                         BorderBrush="#3E3E42" Padding="5"/>
+                <Button Grid.Column="1" Content="Search" Margin="5,0,0,0" 
+                        Width="80" Click="BtnSearch_Click"/>
+            </Grid>
+        </StackPanel>
+
+        <DataGrid Grid.Row="1" x:Name="SearchResultsGrid" 
+                  Background="Transparent" Foreground="#DCDCDC" 
+                  BorderThickness="0" RowBackground="#1E1E1E" 
+                  GridLinesVisibility="None"
+                  AutoGenerateColumns="False" IsReadOnly="True"
+                  HeadersVisibility="Column">
+            
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#2D2D30"/>
+                    <Setter Property="Foreground" Value="#DCDCDC"/>
+                    <Setter Property="Padding" Value="5"/>
+                    <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                    <Setter Property="BorderBrush" Value="#3E3E42"/>
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Offset" Binding="{Binding Offset}" Width="100"/>
+                <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="60"/>
+                <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</TabItem>
+
+                    <TabItem Header="Detections">
+                        <ListView x:Name="DetectionList" Background="#1E1E1E" BorderThickness="0" Foreground="#DCDCDC">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="#3E3E42" BorderThickness="0,0,0,1" Padding="5">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#4EC9B0"/>
+                                            <TextBlock Text="{Binding Type}" Foreground="#9CDCFE" FontSize="11"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </TabItem>
+
+                    <TabItem Header="Properties">
+                        <controls:PropertyGrid x:Name="PropertyGrid"/>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="2" Background="#1E1E1E" BorderBrush="#3E3E42" BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Border Background="#2D2D30" Padding="10,2">
+                    <TextBlock Text="Console" Foreground="#DCDCDC" FontSize="10" FontWeight="Bold"/>
+                </Border>
+                <TextBox x:Name="ConsoleLog" Grid.Row="1" IsReadOnly="True" TextWrapping="Wrap"
+                         Background="Transparent" Foreground="#DCDCDC" BorderThickness="0"
+                         FontFamily="Consolas" FontSize="11" Padding="10" VerticalScrollBarVisibility="Auto"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

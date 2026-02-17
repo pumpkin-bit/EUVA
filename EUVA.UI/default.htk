@@ -1,0 +1,9 @@
+NavInspector   = Alt + D1
+NavSearch      = Alt + D2
+NavDetections  = Alt + D3
+NavProperties  = Alt + D4
+
+CopyHex        = Control + C
+CopyCArray     = Control + Shift + C
+CopyPlainText  = Control + Alt + C
+
