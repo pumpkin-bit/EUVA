@@ -1141,7 +1141,10 @@ Drop the compiled `.dll` into the plugins directory. EUVA loads it automatically
 EUVA is free software released under the **GNU General Public License v3.0**.
 
 ```
-Copyright (C) 2026 EUVA Contributors
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+
+Copyright (C) 2026 pumpkin-bit (falker) & EUVA Contributors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -1150,11 +1153,21 @@ the Free Software Foundation, either version 3 of the License, or
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
-```
 
-The full license text is available at <https://www.gnu.org/licenses/gpl-3.0>.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+---
+
+EngineUnpacker Visual Analyzer (EUVA)
+Professional PE Static Analysis Tool
+
+Educational tool for reverse engineering research.
+Use responsibly and in accordance with applicable laws.
+
+```
 
 ---
 
