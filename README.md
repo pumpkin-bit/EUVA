@@ -7,22 +7,10 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%20x64-informational)](https://github.com/euva) [![Framework](https://img.shields.io/badge/.NET-8.0--windows-purple)](https://dotnet.microsoft.com) [![Language](https://img.shields.io/badge/Language-C%23%2012.0-brightgreen)](https://learn.microsoft.com/en-us/dotnet/csharp/) ![WPF](https://img.shields.io/badge/UI-WPF-blue?style=plasti&logo=windows&logoColor=white) ![Memory](https://img.shields.io/badge/Memory-Mapped%20Files-lightgrey?style=plastic&logo=speedtest&logoColor=white)
 ![Build](https://img.shields.io/badge/Build-Stable-success?style=plastic&logo=github-actions&logoColor=white) ![Version](https://img.shields.io/badge/Release-v1.0-Green?style=plastic&logo=semver&logoColor=white)
 
----
-## Disclaimer
-**This program is under active development. Experimental builds may contain bugs or lead to unexpected behavior. Use with caution.**
-
-This software is provided "as is", without warranty of any kind. EUVA is a high-precision instrument designed for educational purposes and security research. The author is not responsible for any system instability, data loss, or legal consequences resulting from the misuse of this tool.
-By using EUVA, you acknowledge that:
-**You are solely responsible for your actions.**
-**You understand the risks of modifying binary files and process memory.**
-**You will respect the laws and regulations of your jurisdiction.**
-
-
---- 
 
 ## Manifesto
 
-010 Editor and HxD are relics. Their architecture was designed for a world where megabytes were large numbers and binary research meant staring at a static grid. EUVA is the answer to the question nobody in the toolchain ecosystem bothered to ask: *what does a binary analysis tool look like if it's built from scratch in 2026 for researchers who actually understand what they're doing?*
+Most likely, this program answers the question: *what if hex editors were written from scratch in 2026?*
 
 EUVA is a **WPF/C# native application** that operates directly on the binary layer. No heavy runtime frameworks handling PE parsing. No scripting interpreters bolted on as afterthoughts. No 200-MB installs for features you'll never use. What EUVA provides instead:
 
@@ -36,7 +24,17 @@ EUVA is a **WPF/C# native application** that operates directly on the binary lay
 
 ---
 
+## Disclaimer
+**This program is under active development. Experimental builds may contain bugs or lead to unexpected behavior. Use with caution.**
 
+This software is provided "as is", without warranty of any kind. EUVA is a high-precision instrument designed for educational purposes and security research. The author is not responsible for any system instability, data loss, or legal consequences resulting from the misuse of this tool.
+By using EUVA, you acknowledge that:
+**You are solely responsible for your actions.**
+**You understand the risks of modifying binary files and process memory.**
+**You will respect the laws and regulations of your jurisdiction.**
+
+
+--- 
 
 ## Core Subsystems
 
