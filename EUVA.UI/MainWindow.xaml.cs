@@ -19,7 +19,6 @@ using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using System.Linq;
 using System.Diagnostics; 
-using System.Linq;       
 
 namespace EUVA.UI;
 
@@ -33,19 +32,18 @@ public static class HotkeyManager
     public static void LoadDefaults()
     {
         _bindings.Clear();
+    _bindings[(ModifierKeys.Alt, Key.D1)] = EUVAAction.NavInspector;
+    _bindings[(ModifierKeys.Alt, Key.D2)] = EUVAAction.NavSearch;
+    _bindings[(ModifierKeys.Alt, Key.D3)] = EUVAAction.NavDetections;
+    _bindings[(ModifierKeys.Alt, Key.D4)] = EUVAAction.NavProperties;
+    _bindings[(ModifierKeys.Control, Key.Z)] = EUVAAction.Undo;
+    _bindings[(ModifierKeys.Control | ModifierKeys.Shift, Key.Z)] = EUVAAction.FullUndo;
 
-        
-        _bindings[(ModifierKeys.Alt, Key.D1)] = EUVAAction.NavInspector;
-        _bindings[(ModifierKeys.Alt, Key.D2)] = EUVAAction.NavSearch;
-        _bindings[(ModifierKeys.Alt, Key.D3)] = EUVAAction.NavDetections;
-        _bindings[(ModifierKeys.Alt, Key.D4)] = EUVAAction.NavProperties;
+    _bindings[(ModifierKeys.Control, Key.C)] = EUVAAction.CopyHex;
+    _bindings[(ModifierKeys.Control | ModifierKeys.Shift, Key.C)] = EUVAAction.CopyCArray;
 
+    MainWindow.Instance?.Log("[System] Default hotkeys loaded.", Brushes.Gray);
         
-        _bindings[(ModifierKeys.Control, Key.C)] = EUVAAction.CopyHex;
-        _bindings[(ModifierKeys.Control | ModifierKeys.Shift, Key.C)] = EUVAAction.CopyCArray;
-
-        
-        MainWindow.Instance?.Log("[System] Default hotkeys loaded.", Brushes.Gray);
     }
 
 public static void Load(string path)
@@ -95,9 +93,10 @@ public enum EUVAAction
 {
     None,
     NavInspector, NavSearch, NavDetections, NavProperties,
-    CopyHex, CopyCArray, CopyPlainText
+    CopyHex, CopyCArray, CopyPlainText,
+    Undo,
+    FullUndo
 }
-
 
 public class SearchResult
 {
@@ -125,6 +124,38 @@ public partial class MainWindow : Window
     InitializeDetectors();
     }
    
+
+    private void PerformUndo()
+    {
+        lock (_undoStack)
+        {
+            if (_undoStack.Count == 0) return;
+            var (offset, oldData, _) = _undoStack.Pop();
+            for (int i = 0; i < oldData.Length; i++) HexView.WriteByte(offset + i, oldData[i]);
+        }
+        HexView.InvalidateVisual();
+    }
+
+
+    private void PerformFullUndo()
+    {
+        lock (_undoStack)
+        {
+            if (_transactionSteps.Count == 0) return;
+            int count = _transactionSteps.Pop();
+            for (int i = 0; i < count; i++)
+            {
+                if (_undoStack.Count > 0)
+                {
+                    var (offset, oldData, _) = _undoStack.Pop();
+                    for (int j = 0; j < oldData.Length; j++) HexView.WriteByte(offset + j, oldData[j]);
+                }
+            }
+        }
+        HexView.InvalidateVisual();
+    }
+
+
     public void Log(string message, SolidColorBrush color)
     {
       
@@ -588,71 +619,9 @@ public partial class MainWindow : Window
                 "Theme Error", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
-    public void playvideo_click(object sender, RoutedEventArgs e)
-    {
     
-    string oldThemePath = EuvaSettings.Default.LastThemePath;
-    IsMadnessMode = true;
-
-    TriggerBadAppleTheme();
-    Window videoWindow = new Window
-    {
-        WindowStyle = WindowStyle.None,          
-        AllowsTransparency = true,             
-        Background = Brushes.Black,             
-        WindowState = WindowState.Normal,
-        WindowStartupLocation = WindowStartupLocation.CenterScreen,
-        Width = 500,                          
-        Height = 500,
-        Topmost = true                       
-    };
-
-    string videoPath = @"C:\Users\arsen\Desktop\EUVA\Video\bad-apple.mp4";
-    string DefaultThemesPath = @"C:\Users\arsen\Desktop\EUVA\EUVA.UI\Theming\default.themes";
     
-    MediaElement player = new MediaElement
-    {
-       
-        Source = new Uri(videoPath, UriKind.RelativeOrAbsolute),
-        LoadedBehavior = MediaState.Play,
-        Stretch = Stretch.Uniform,          
-        VerticalAlignment = VerticalAlignment.Stretch
-    };
-
-    player.MediaEnded += (s, ev) => {
-        IsMadnessMode = false;
-        _ApplyThemeFile(DefaultThemesPath, false); 
-        videoWindow.Close();
-    };
-    videoWindow.MouseDown += (s, e) => {
-        IsMadnessMode = false;
-        _ApplyThemeFile(DefaultThemesPath, false); 
-        videoWindow.Close();
-    };
-
-    videoWindow.Content = player;
-    videoWindow.Show();
-    }   
-
-public bool IsMadnessMode { get; set; } = false;
-    
-public void TriggerBadAppleTheme()
-{
-    string badApplePath = @"C:\Users\arsen\Desktop\EUVA\Video\badapple.themes";
-
-    if (File.Exists(badApplePath))
-    {
-       _ApplyThemeFile(badApplePath, false);
-    }
-    else
-    {
-        LogMessage($"[ERROR] Theme file not found at: {badApplePath}");
-        }
-     }
-
     private bool IsLittleEndian = true;
-
-
     public class InspectorItem
 {
     public string Name { get; set; }
@@ -779,6 +748,18 @@ public void TriggerBadAppleTheme()
         Key key = (e.Key == Key.System) ? e.SystemKey : e.Key;
         var action = HotkeyManager.GetAction(Keyboard.Modifiers, key);
 
+        if (action == EUVAAction.Undo)
+        {
+            PerformUndo();
+            e.Handled = true;
+            return;
+        }
+        else if (action == EUVAAction.FullUndo)
+        {
+            PerformFullUndo();
+            e.Handled = true;
+        }
+
         if (action >= EUVAAction.NavInspector && action <= EUVAAction.NavProperties)
         {
             int index = (int)action - (int)EUVAAction.NavInspector;
@@ -822,7 +803,7 @@ public void TriggerBadAppleTheme()
     }
 
     
-    private FileStream? _rawVideoStream;
+private FileStream? _rawVideoStream;
 private byte[]? _frameBuffer;
 private readonly int _videoWidth = 24;
 private readonly int _videoHeight = 26; 
@@ -1064,187 +1045,221 @@ public static byte[] Assemble(string part, long currentAddr)
     return null;
 }
 }
-    private async Task RunParallelEngine(string scriptPath)
+
+
+private readonly Stack<(long Offset, byte[] Old, byte[] New)> _undoStack = new();
+private readonly Stack<int> _transactionSteps = new();
+private static readonly string BaseDir = AppDomain.CurrentDomain.BaseDirectory;
+
+private async Task RunParallelEngine(string scriptPath)
+{
+    if (HexView.FileLength == 0) { 
+        Log("[Engine] FATAL: No file loaded to patch!", Brushes.Red); 
+        return; 
+    }
+    
+    SafeLog($"[Engine] Starting script: {Path.GetFileName(scriptPath)}", Brushes.White);
+    
+    int stepsInThisRun = 0; 
+    string[] lines;
+    
+    try {
+        lines = await File.ReadAllLinesAsync(scriptPath);
+    } catch (Exception ex) {
+        Log($"[Engine] IO Error: {ex.Message}", Brushes.Red);
+        return;
+    }
+
+    int totalChanges = 0;
+    Dictionary<string, long> globalScope = new();
+
+    await Task.Run(() => 
     {
-        if (HexView.FileLength == 0) { Log("[Engine] Error: File not loaded!", Brushes.Red); return; }
-
-        string[] lines = await File.ReadAllLinesAsync(scriptPath);
-        int totalChanges = 0;
-        
-        Dictionary<string, long> globalScope = new();
-
-        await Task.Run(() => 
+        try 
         {
-            try 
+            long lastAddress = 0;
+            string currentModifier = "default";
+            MethodContainer currentMethod = null;
+            bool inScriptBody = false;
+            bool isTerminated = false;
+
+            for (int i = 0; i < lines.Length; i++)
             {
-                long lastAddress = 0;
-                string currentModifier = "default";
-                MethodContainer currentMethod = null;
-                bool inScriptBody = false;
-                bool isTerminated = false;
+                var line = Regex.Replace(lines[i].Split('#')[0].Split("//")[0], @"\s+", " ").Trim();
+                if (string.IsNullOrEmpty(line)) continue;
 
-                
-                for (int i = 0; i < lines.Length; i++)
-                {
-                    var line = Regex.Replace(lines[i].Split('#')[0].Split("//")[0], @"\s+", " ").Trim();
-                    if (string.IsNullOrEmpty(line)) continue;
+                if (line.ToLower() == "start;") { inScriptBody = true; continue; }
+                if (!inScriptBody) continue;
+                if (line.ToLower() == "end;") { isTerminated = true; break; }
 
-                    if (line.ToLower() == "start;") { inScriptBody = true; continue; }
-                    if (!inScriptBody) continue;
-                    if (line.ToLower() == "end;") { isTerminated = true; break; }
-
-                  
-                    if (line.EndsWith(":")) {
-                        var mod = line.Replace(":", "").ToLower();
-                        if (mod == "public" || mod == "private") { currentModifier = mod; continue; }
+               
+                if (line.EndsWith(":")) {
+                    var mod = line.Replace(":", "").ToLower();
+                    if (mod == "public" || mod == "private") { 
+                        currentModifier = mod; 
+                        continue; 
                     }
+                }
 
-                   
-                    if (line.StartsWith("_createMethod")) {
-                        var mName = Regex.Match(line, @"\((.*?)\)").Groups[1].Value;
-                        currentMethod = new MethodContainer { Name = mName, Access = currentModifier };
+                if (line.StartsWith("_createMethod")) {
+                    var mName = Regex.Match(line, @"\((.*?)\)").Groups[1].Value;
+                    currentMethod = new MethodContainer { Name = mName, Access = currentModifier };
+                    SafeLog($"[Engine] Parsing method: {mName} ({currentModifier})", Brushes.Gray);
+                    continue;
+                }
+
+                if (currentMethod != null) {
+                    if (line == "{") continue;
+                    
+                    if (line == "}") {
+                        Dictionary<string, long> localScope = new();
+                        SafeLog($"[Engine] Executing method: {currentMethod.Name}", Brushes.CornflowerBlue);
+
+                        foreach (var cmd in currentMethod.Body)
+                        {
+                            ExecuteCommand(cmd, localScope, globalScope, ref lastAddress, ref totalChanges, ref stepsInThisRun);
+                        }
+
+                     
+                        if (currentMethod.Access == "public") {
+                            foreach (var exportName in currentMethod.Clinks.Keys.ToList()) {
+                                if (localScope.TryGetValue(exportName, out long addr)) {
+                                    globalScope[$"{currentMethod.Name}.{exportName}"] = addr;
+                                    SafeLog($"[Link] {currentMethod.Name}.{exportName} -> 0x{addr:X}", Brushes.Cyan);
+                                }
+                            }
+                        }
+                        currentMethod = null; 
                         continue;
                     }
 
-                    if (currentMethod != null) {
-                        if (line == "{") continue;
-                        
-                        if (line == "}") {
-                          
-                            FinalizeMethod(currentMethod, globalScope, ref lastAddress, ref totalChanges);
-                            currentMethod = null; 
-                            continue;
+               
+                    if (line.ToLower().StartsWith("clink:") || line.Contains("[")) {
+                        int j = i;
+                        string fullClink = "";
+                        while (j < lines.Length && !lines[j].Contains("]")) {
+                            fullClink += lines[j];
+                            j++;
                         }
-
-                      
-                        if (line.ToLower().StartsWith("clink:") || line.Contains("[")) {
-                            int j = i;
-                            string fullClink = "";
-                            while (j < lines.Length && !lines[j].Contains("]")) {
-                                fullClink += lines[j];
-                                j++;
-                            }
-                            if (j < lines.Length) fullClink += lines[j];
-                            
-                           
-                            var match = Regex.Match(fullClink, @"\[(.*?)\]", RegexOptions.Singleline);
-                            if (match.Success) {
-                                var names = match.Groups[1].Value.Split(new[] { ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                                                .Select(s => s.Trim()).ToList();
-                                
-                                foreach(var name in names) {
-                            
-                                    currentMethod.Clinks[name] = 0; 
-                                }
-                            }
-                            i = j; 
-                            continue;
+                        if (j < lines.Length) fullClink += lines[j];
+                        var match = Regex.Match(fullClink, @"\[(.*?)\]", RegexOptions.Singleline);
+                        if (match.Success) {
+                            var names = match.Groups[1].Value.Split(new[] { ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                                             .Select(s => s.Trim()).ToList();
+                            foreach(var name in names) currentMethod.Clinks[name] = 0;
                         }
-
-                      
-                        currentMethod.Body.Add(line);
+                        i = j; continue;
                     }
-                }
-                
-                if (!isTerminated) throw new Exception("FATAL: No 'end;' flag! Execution aborted.");
-            }
-            catch (Exception ex) { SafeLog($"[CLINK ERROR] {ex.Message}", Brushes.OrangeRed); }
-        });
-    }
 
-       private void FinalizeMethod(MethodContainer method, Dictionary<string, long> globalScope, ref long lastAddress, ref int totalChanges)
-    {
-        Dictionary<string, long> localScope = new();
-
-        foreach (var cmd in method.Body)
-        {
-            ExecuteCommand(cmd, localScope, globalScope, ref lastAddress, ref totalChanges);
-        }
-
-        if (method.Access == "public") {
-            foreach (var exportName in method.Clinks.Keys.ToList()) {
-                if (localScope.TryGetValue(exportName, out long addr)) {
-                    string globalName = $"{method.Name}.{exportName}";
-                    globalScope[globalName] = addr;
-                    SafeLog($"[Link] {globalName} -> 0x{addr:X}", Brushes.Cyan);
-                } else {
-                    throw new Exception($"Неизвестная структура: '{exportName}' не определен в {method.Name}!");
+                    currentMethod.Body.Add(line);
                 }
             }
-        }
-    }
+            
+          
+            if (stepsInThisRun > 0)
+            {
+                lock (_undoStack) 
+                { 
+                    _transactionSteps.Push(stepsInThisRun); 
+                }
+                SafeLog($"[Engine] Success. {stepsInThisRun} operations committed to transaction stack.", Brushes.SpringGreen);
+            }
 
-private void ExecuteCommand(string line, Dictionary<string, long> localScope, Dictionary<string, long> globalScope, ref long lastAddress, ref int totalChanges)
+            if (!isTerminated) throw new Exception("Script reached end of file without 'end;' flag!");
+        }
+        catch (Exception ex) { 
+            SafeLog($"[fatal error] {ex.Message}", Brushes.OrangeRed);   
+        }
+    });
+}
+
+private void ExecuteCommand(string line, Dictionary<string, long> localScope, Dictionary<string, long> globalScope, ref long lastAddress, ref int totalChanges, ref int stepsInThisRun) 
 {
     var effectiveScope = new Dictionary<string, long>(globalScope);
     foreach (var kv in localScope) effectiveScope[kv.Key] = kv.Value;
 
     string cmd = line.ToLower();
 
-    
-    if (cmd.StartsWith("find")) {
-        var findParts = ExtractInsideBrackets(line).Split('=');
-        if (findParts.Length < 2) return;
-
-        long addr = FindSignature(findParts[1].Trim());
-        localScope[findParts[0].Trim()] = addr;
-        
-        Dispatcher.BeginInvoke(new Action(() => 
-            Log($"[Found] {findParts[0].Trim()} at 0x{addr:X}", addr == -1 ? Brushes.Orange : Brushes.Violet)));
-    }
-    
-    else if (cmd.StartsWith("set")) {
-        var setParts = ExtractInsideBrackets(line).Split('=');
-        if (setParts.Length < 2) return;
-
-        localScope[setParts[0].Trim()] = ParseMath(setParts[1], lastAddress, effectiveScope);
-    }
-    
-    else {
-        string addrPart = line.Contains(':') ? line.Split(':')[0] : ExtractInsideBrackets(line).Split(':')[0];
-        long addr = ParseMath(addrPart, lastAddress, effectiveScope);
-
-        
-        if (addr <= 0) return;
-
-        
-        if (cmd.StartsWith("check")) {
-            byte[] expected = ParseBytes(line.Split(':')[1]);
-            for (int i = 0; i < expected.Length; i++)
-                if (HexView.ReadByte(addr + i) != expected[i]) return;
-        }
-        
-        else if (line.Contains(':')) {
-        string dataPart = line.Split(':')[1].Trim();
-        byte[] bytes = null;
-
-        
-        bytes = AsmLogic.Assemble(dataPart, addr); 
-
-        if (bytes == null && dataPart.Contains("\"")) {
-            bytes = System.Text.Encoding.ASCII.GetBytes(Regex.Match(dataPart, "\"(.*)\"").Groups[1].Value);
-        }
-        
-   
-
+    try {
+        if (cmd.StartsWith("find")) {
+            var findParts = ExtractInsideBrackets(line).Split('=');
+            if (findParts.Length < 2) return;
+            string varName = findParts[0].Trim();
+            long addr = FindSignature(findParts[1].Trim());
             
-            
-            if (bytes == null) {
-                bytes = ParseBytes(dataPart);
+            localScope[varName] = addr;
+            SafeLog($"[Search] {varName} set to 0x{addr:X}", addr == -1 ? Brushes.Orange : Brushes.Violet);
+        }
+        else if (cmd.StartsWith("set")) {
+            var setParts = ExtractInsideBrackets(line).Split('=');
+            if (setParts.Length < 2) return;
+            localScope[setParts[0].Trim()] = ParseMath(setParts[1], lastAddress, effectiveScope);
+        }
+        else {
+            string addrPart = line.Contains(':') ? line.Split(':')[0] : ExtractInsideBrackets(line).Split(':')[0];
+            long addr = ParseMath(addrPart, lastAddress, effectiveScope);
+
+            if (addr < 0 || addr >= HexView.FileLength) {
+                SafeLog($"[Skip] Address 0x{addr:X} out of range.", Brushes.Yellow);
+                return;
             }
 
-            
-            if (bytes != null && bytes.Length > 0) {
-                for (int i = 0; i < bytes.Length; i++) 
-                    HexView.WriteByte(addr + i, bytes[i]);
-
-                totalChanges += bytes.Length;
-                lastAddress = addr + bytes.Length;
-
-                Dispatcher.BeginInvoke(new Action(() => HexView.InvalidateVisual()), 
-                    System.Windows.Threading.DispatcherPriority.Background);
+            if (cmd.StartsWith("check")) {
+                byte[] expected = ParseBytes(line.Split(':')[1]);
+                for (int i = 0; i < expected.Length; i++)
+                    if (HexView.ReadByte(addr + i) != expected[i]) {
+                        SafeLog($"[Check Fail] 0x{addr:X} mismatch.", Brushes.OrangeRed);
+                        return;
+                    }
+                return;
             }
+            
+            if (line.Contains(':')) {
+                string dataPart = line.Split(':')[1].Trim();
+                byte[] bytes = null;
+
+                bytes = AsmLogic.Assemble(dataPart, addr); 
+
+                if (bytes == null && dataPart.Contains("\"")) {
+                    bytes = System.Text.Encoding.ASCII.GetBytes(Regex.Match(dataPart, "\"(.*)\"").Groups[1].Value);
+                }
+
+                if (bytes == null) {
+                    bytes = ParseBytes(dataPart);
+                }
+
+                if (bytes != null && bytes.Length > 0) 
+                {
+                    byte[] oldBytes = new byte[bytes.Length];
+                    for (int i = 0; i < bytes.Length; i++) oldBytes[i] = HexView.ReadByte(addr + i);
+
+                    
+                    string oldHex = BitConverter.ToString(oldBytes).Replace("-", " ");
+                    string newHex = BitConverter.ToString(bytes).Replace("-", " ");
+                    
+                
+                    SafeLog($"[Patch] 0x{addr:X}: {oldHex} -> {newHex}", Brushes.YellowGreen);
+                
+
+                    lock (_undoStack) 
+                    {
+                        _undoStack.Push((addr, oldBytes, bytes));
+                        stepsInThisRun++;
+                    }
+
+                    for (int i = 0; i < bytes.Length; i++) 
+                        HexView.WriteByte(addr + i, bytes[i]);
+
+                    totalChanges += bytes.Length;
+                    lastAddress = addr + bytes.Length;
+
+                    Dispatcher.BeginInvoke(new Action(() => HexView.InvalidateVisual()), 
+                        System.Windows.Threading.DispatcherPriority.Background);
+                }
+             }
         }
+    } catch (Exception ex) {
+        SafeLog($"[Cmd Error] '{line}': {ex.Message}", Brushes.Red);
     }
 }
 

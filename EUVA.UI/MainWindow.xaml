@@ -87,8 +87,7 @@
                         <MenuItem Header="Select Theme..." Click="MenuThemeSelect_Click"/>
                     </MenuItem>
                     <MenuItem Header="Watch Script" Click="MenuWatchScript_Click"/>
-                </MenuItem>
-                <MenuItem Header="Start" Click="playvideo_click"/>
+                </MenuItem>  
                 <MenuItem Header="Endian: LE" x:Name="BtnEndian" Click="BtnEndian_Click"/>
                <MenuItem Header="Encoding">
                     <MenuItem Header="Latin-1" Click="ChangeEncoding_Click" Tag="28591"/>

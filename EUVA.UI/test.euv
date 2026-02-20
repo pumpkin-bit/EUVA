@@ -1,18 +1,17 @@
-SPDX-License-Identifier: GPL-3.0-or-later
-
 start;
+
 public:
-_createMethod(GodMode) {
+_createMethod(ComplexTest)
+{
+   
+    find(myFunc = 55 8B EC)
 
-    find(MyFunc = 48 83 EC 28 41 B9 01)
-    MyFunc : nop
+    myFunc: mov eax, 1
+    myFunc + 5: ret
+    set(header = 0x0)
     
-    (MyFunc + 1) : nop
-    (MyFunc + 2) : nop
-    (MyFunc + 3) : nop
-
-    (MyFunc + 4) : mov eax, 999
-    
-    clink: [MyFunc]
+    header: "NO"
+    header + 0x10: DE AD BE EF
 }
+
 end;
