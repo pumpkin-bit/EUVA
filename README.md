@@ -1136,6 +1136,14 @@ Drop the compiled `.dll` into the plugins directory. EUVA loads it automatically
 
 ---
 
+## Transactional Safety (Undo)
+Never worry about corrupting a binary again. EUVA HexEngine features a robust, multi-level undo system:
+* **Step-by-Step Rollback (`Ctrl + Z`):** Undo individual byte patches one by one.
+* **Session Rollback (`Ctrl + Shift + Z`):** Revert all changes made during the entire script execution session 
+
+
+---
+
 ## License
 
 EUVA is free software released under the **GNU General Public License v3.0**.
