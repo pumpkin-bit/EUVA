@@ -70,15 +70,6 @@ _mmf = MemoryMappedFile.CreateFromFile(
 _accessor = _mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
 ```
 
-**What this means in practice:**
-
-| Concern | HxD/010 Editor approach | EUVA approach |
-|---|---|---|
-| 1 GB binary | Full allocation or paged chunking | Kernel handles paging transparently |
-| Write operation | Copy-on-write to a temp buffer | Direct `_accessor.Write(offset, value)` |
-| Flush to disk | Serialization pass | `_accessor.Flush()` — OS flushes dirty pages |
-| Memory pressure | Scales with file size | Scales with *viewport*, not file size |
-
 **Span-based I/O:**
 
 All multi-byte reads in the hot path use `ArrayPool<byte>` to avoid allocations and copy into the caller's `Span<byte>`:
