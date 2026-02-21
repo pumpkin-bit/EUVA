@@ -70,6 +70,15 @@ _mmf = MemoryMappedFile.CreateFromFile(
 _accessor = _mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
 ```
 
+**Thread-Safe Access (`ReaderWriterLockSlim`):**
+
+The `MemoryMappedViewAccessor` is protected by `_accessorLock`, a `ReaderWriterLockSlim` with no recursion. All read operations (`ReadByte`, `ReadBytes`) enter a **read lock**, allowing concurrent reads. Write operations (`WriteByte`) and file load/unload enter an **exclusive write lock**. This eliminates data races between the render thread, the script engine, and background tasks.
+
+```csharp
+private readonly ReaderWriterLockSlim _accessorLock =
+    new(LockRecursionPolicy.NoRecursion);
+```
+
 **Span-based I/O:**
 
 All multi-byte reads in the hot path use `ArrayPool<byte>` to avoid allocations and copy into the caller's `Span<byte>`:
@@ -305,7 +314,6 @@ The Inspector panel provides simultaneous multi-type interpretation of any selec
 | `OLETIME` | 8 | COM Automation date |
 | `GUID / UUID` | 16 | RFC 4122 format |
 | `ULEB128` | Variable | DWARF/WebAssembly, max 10 bytes |
-| `SLEB128` | Variable | Signed variant |
 
 Multi-byte reads use `System.Buffers.Binary.BinaryPrimitives` for endian-safe access over `ReadOnlySpan<byte>`.
 
@@ -455,11 +463,11 @@ FullUndo      = Control + Shift + Z
 | `NavProperties` | `Alt+4` | Switch to Properties tab |
 | `CopyHex` | `Ctrl+C` | Copy selection as hex string |
 | `CopyCArray` | `Ctrl+Shift+C` | Copy selection as C byte array |
-| `CopyPlainText` | `Ctrl+Alt+C` | Copy selection as decoded text |
+| `CopyPlainText` | *(not bound by default — set via `.htk`)* | Copy selection as decoded text |
 | `Undo` | `Ctrl+Z` | Undo last byte write |
 | `FullUndo` | `Ctrl+Shift+Z` | Revert entire last script run |
 
-Both `.htk` path and active `.themes` path are persisted together in a config file at `AppBaseDir/hotkey.cfg` (two lines: htk path, theme path).
+Both `.htk` path and active `.themes` path are persisted together in a config file at `AppBaseDir/euva.cfg` (three lines: htk path, theme path, always-default theme path fallback).
 
 ---
 
@@ -596,7 +604,20 @@ _createMethod(Patcher) {
 
 ### Address Expression Engine (`ParseMath`)
 
-All address expressions pass through `ParseMath()`: variable substitution (longest-key-first to prevent partial matches), hex literal conversion, and evaluation via `System.Data.DataTable.Compute()`. `.` or `()` resolves to the last-written address.
+All address expressions pass through `ParseMath()`: variable substitution (longest-match-first to prevent partial token collisions), hex literal conversion (`0x` prefix), and evaluation via a **custom recursive descent expression parser** — no external dependencies, no heap allocations beyond a single `ArrayPool<char>` rental.
+
+The parser evaluates a four-level grammar:
+
+```
+EvalAdd   → EvalMul  (('+' | '-') EvalMul)*
+EvalMul   → EvalUnary(('*' | '/' | '%') EvalUnary)*
+EvalUnary → ('-' | '+')? EvalAtom
+EvalAtom  → '(' EvalAdd ')' | 0x<hex> | <decimal> | 0
+```
+
+`.` or `()` resolves to the last-written address.
+
+**Invalid variable propagation:** if a `find()` command fails to locate its pattern, the target variable is set to `long.MinValue` as a sentinel. Any subsequent `set()` or patch command whose address expression resolves through an invalid variable short-circuits to `long.MinValue`, and the command is **automatically skipped** with an orange warning in the console. This prevents silent partial-patch corruption when a signature is absent.
 
 ### Complete `.euv` Example
 

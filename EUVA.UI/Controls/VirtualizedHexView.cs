@@ -1,10 +1,11 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
 
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -19,11 +20,11 @@ public class VirtualizedHexView : FrameworkElement
 {
     private sealed class GlyphCache
     {
-        private readonly Dictionary<long, uint[]> _cache = new(2048);
+        private readonly ConcurrentDictionary<long, uint[]> _cache = new(concurrencyLevel: 1, capacity: 2048);
         private readonly GlyphTypeface _glyphTypeface;
         private readonly double _fontSize;
-        private readonly int _cellW; 
-        private readonly int _cellH;  
+        private readonly int _cellW;
+        private readonly int _cellH;
         private readonly double _pixelsPerDip;
 
         public int CellW => _cellW;
@@ -32,32 +33,28 @@ public class VirtualizedHexView : FrameworkElement
         public GlyphCache(GlyphTypeface glyphTypeface, double fontSize,
             int cellW, int cellH, double pixelsPerDip)
         {
-            _glyphTypeface  = glyphTypeface;
-            _fontSize       = fontSize;
-            _cellW          = cellW;
-            _cellH          = cellH;
-            _pixelsPerDip   = pixelsPerDip;
+            _glyphTypeface = glyphTypeface;
+            _fontSize      = fontSize;
+            _cellW         = cellW;
+            _cellH         = cellH;
+            _pixelsPerDip  = pixelsPerDip;
         }
+
         public uint[] Get(char c, uint colorArgb)
         {
             long key = ((long)(byte)c << 32) | colorArgb;
-            if (_cache.TryGetValue(key, out var cached)) return cached;
-
-            var pixels = RasterizeGlyph(c, colorArgb);
-            _cache[key] = pixels;
-            return pixels;
+            return _cache.GetOrAdd(key, _ => RasterizeGlyph(c, colorArgb));
         }
 
         public void Clear() => _cache.Clear();
-
         private uint[] RasterizeGlyph(char c, uint colorArgb)
         {
             double dipW = _cellW / _pixelsPerDip;
             double dipH = _cellH / _pixelsPerDip;
-            double dpi  = 96.0 * _pixelsPerDip;
+            double dpi  = 96.0  * _pixelsPerDip;
 
             byte r = (byte)(colorArgb >> 16);
-            byte g = (byte)(colorArgb >> 8);
+            byte g = (byte)(colorArgb >>  8);
             byte b = (byte)(colorArgb);
             var brush = new SolidColorBrush(Color.FromArgb(255, r, g, b));
             brush.Freeze();
@@ -84,25 +81,25 @@ public class VirtualizedHexView : FrameworkElement
             int stride = _cellW * 4;
             byte[] raw = new byte[_cellH * stride];
             rtb.CopyPixels(raw, stride, 0);
+
             var result = new uint[_cellW * _cellH];
             for (int i = 0; i < result.Length; i++)
             {
-                byte pb = raw[i * 4 + 0];
-                byte pg = raw[i * 4 + 1]; 
-                byte pr = raw[i * 4 + 2];
-                byte pa = raw[i * 4 + 3];
+                byte pb = raw[i * 4 + 0];  
+                byte pg = raw[i * 4 + 1];  
+                byte pr = raw[i * 4 + 2];  
+                byte pa = raw[i * 4 + 3];  
 
                 if (pa == 0) { result[i] = 0; continue; }
-                byte ub = (byte)((pb * 255 + pa / 2) / pa); 
-                byte ug = (byte)((pg * 255 + pa / 2) / pa);
-                byte ur = (byte)((pr * 255 + pa / 2) / pa);
-                result[i] = ((uint)pa << 24) | ((uint)ur << 16) | ((uint)ug << 8) | ub;
+                result[i] = ((uint)pa << 24) | ((uint)pr << 16) | ((uint)pg << 8) | pb;
             }
             return result;
         }
     }
     private MemoryMappedFile?         _mmf;
     private MemoryMappedViewAccessor? _accessor;
+    private readonly ReaderWriterLockSlim _accessorLock = new(LockRecursionPolicy.NoRecursion);
+
     private long _fileLength;
     public  long FileLength => _fileLength;
     private long _currentScrollLine = 0;
@@ -118,21 +115,24 @@ public class VirtualizedHexView : FrameworkElement
     private double _fontSize     = 13;
     private double _pixelsPerDip = 1.0;
 
-    private int CellW => (int)Math.Ceiling(_charWidth    * _pixelsPerDip);
-    private int CellH => (int)Math.Ceiling(_lineHeight   * _pixelsPerDip);
+    private int CellW => (int)Math.Ceiling(_charWidth  * _pixelsPerDip);
+    private int CellH => (int)Math.Ceiling(_lineHeight * _pixelsPerDip);
+
     private WriteableBitmap? _bitmap;
-    private uint[]           _backBuffer   = Array.Empty<uint>(); 
+    private uint[]           _backBuffer   = Array.Empty<uint>();
     private int              _bitmapWidth  = 0;
     private int              _bitmapHeight = 0;
     private bool _fullRedrawNeeded = true;
-    private readonly HashSet<long> _dirtyLines = new(); 
+    private readonly HashSet<long> _dirtyLines = new();
+
     private GlyphCache? _glyphCache;
     private char[] _asciiLookupTable = new char[256];
     private int    _currentCodePage  = 1251;
-    private byte[] _lineBuffer = new byte[256];
-    private readonly object        _modLock          = new();
-    private HashSet<long>          _modifiedOffsets  = new();
-    private volatile HashSet<long> _modifiedSnapshot = new();
+    private byte[] _lineBuffer       = new byte[256];
+    private readonly object   _modLock         = new();
+    private readonly HashSet<long>  _modifiedOffsets = new();
+    private volatile HashSet<long>  _modifiedSnapshot = new();  
+
     private uint _colBackground;
     private uint _colOffset;
     private uint _colByteActive;
@@ -144,12 +144,14 @@ public class VirtualizedHexView : FrameworkElement
     private uint _colColumnHeader;
     private uint _colSelectionBg;
     private uint _colModifiedBg;
+
     private readonly Image _image = new() { Stretch = Stretch.None };
-    public static bool IsMadnessMode { get; set; } = false;
+
     public bool   IsMediaMode { get; set; } = false;
     private byte[]? _mediaBuffer;
     private readonly string _videoRamp = " .:-=+*#%@";
     public Brush CurrentColor { get; set; } = Brushes.Green;
+
     public static readonly DependencyProperty RegionsProperty =
         DependencyProperty.Register(nameof(Regions), typeof(List<DataRegion>), typeof(VirtualizedHexView),
             new PropertyMetadata(new List<DataRegion>()));
@@ -161,7 +163,7 @@ public class VirtualizedHexView : FrameworkElement
     public List<DataRegion> Regions
     {
         get => (List<DataRegion>)GetValue(RegionsProperty);
-        set => SetValue(RegionsProperty, value); 
+        set => SetValue(RegionsProperty, value);
     }
 
     public long SelectedOffset
@@ -171,8 +173,12 @@ public class VirtualizedHexView : FrameworkElement
     }
 
     public event EventHandler<long>? OffsetSelected;
+
     public VirtualizedHexView()
     {
+        if (PresentationSource.FromVisual(this) is { } ps)
+            _pixelsPerDip = ps.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+
         InitializeAsciiTable(28591);
         ClipToBounds = true;
         Focusable    = true;
@@ -193,6 +199,7 @@ public class VirtualizedHexView : FrameworkElement
             RequestFullRedraw();
         };
     }
+
     protected override int VisualChildrenCount => 1;
     protected override Visual GetVisualChild(int index) => _image;
 
@@ -240,7 +247,6 @@ public class VirtualizedHexView : FrameworkElement
     private void RebuildGlyphCache()
     {
         if (_pixelsPerDip == 0) return;
-
         _glyphCache?.Clear();
         _glyphCache = new GlyphCache(
             GetGlyphTypeface(), _fontSize,
@@ -255,10 +261,10 @@ public class VirtualizedHexView : FrameworkElement
         tf.TryGetGlyphTypeface(out var gtf);
         return gtf;
     }
-
     private void WarmupGlyphCache()
     {
-        if (_glyphCache == null) return;
+        var cache = _glyphCache;
+        if (cache == null) return;
         uint[] colors = {
             _colByteActive, _colByteNull, _colByteSelected,
             _colAsciiPrintable, _colAsciiNonPrint, _colAsciiExt,
@@ -267,25 +273,24 @@ public class VirtualizedHexView : FrameworkElement
         char[] hexChars = "0123456789ABCDEF ".ToCharArray();
         foreach (var col in colors)
             foreach (var c in hexChars)
-                _glyphCache.Get(c, col);
+                cache.Get(c, col);
         foreach (var col in colors)
             for (int i = 0; i < 256; i++)
-                _glyphCache.Get(_asciiLookupTable[i], col);
+                cache.Get(_asciiLookupTable[i], col);
         Dispatcher.BeginInvoke(() => RequestFullRedraw());
     }
     private void ResizeBitmap(int w, int h)
     {
         if (w <= 0 || h <= 0) return;
         if (w == _bitmapWidth && h == _bitmapHeight) return;
-
         _bitmapWidth  = w;
         _bitmapHeight = h;
-
         _bitmap = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgra32, null);
-        _backBuffer = new uint[w * h]; 
+        _backBuffer = new uint[w * h];
         _image.Source = _bitmap;
         _fullRedrawNeeded = true;
     }
+
     private void RequestFullRedraw()
     {
         _fullRedrawNeeded = true;
@@ -319,6 +324,7 @@ public class VirtualizedHexView : FrameworkElement
 
         if (_fullRedrawNeeded)
         {
+            TakeModifiedSnapshot();
             RenderFullFrame();
             FlushBitmapFull();
             _fullRedrawNeeded = false;
@@ -326,27 +332,35 @@ public class VirtualizedHexView : FrameworkElement
         }
         else if (_dirtyLines.Count > 0)
         {
+            TakeModifiedSnapshot();
             foreach (long lineIdx in _dirtyLines)
                 RenderLine(lineIdx);
             FlushBitmapDirty();
             _dirtyLines.Clear();
         }
     }
+    private void TakeModifiedSnapshot()
+    {
+        HashSet<long> snap;
+        lock (_modLock)
+            snap = new HashSet<long>(_modifiedOffsets);
+        _modifiedSnapshot = snap;  
+    }
     private void RenderFullFrame()
     {
         FillBackground(_backBuffer, _bitmapWidth, _bitmapHeight, _colBackground);
-        int offsetColPx    = (int)(120 * _pixelsPerDip);
-        int hexColPx       = (int)(_bytesPerLine * 3 * _charWidth * _pixelsPerDip);
-        int asciiColStartPx= offsetColPx + hexColPx + (int)(20 * _pixelsPerDip);
+        int offsetColPx     = (int)(120 * _pixelsPerDip);
+        int hexColPx        = (int)(_bytesPerLine * 3 * _charWidth * _pixelsPerDip);
+        int asciiColStartPx = offsetColPx + hexColPx + (int)(20 * _pixelsPerDip);
 
         DrawStringToBuffer("Offset",   10,               5, _colColumnHeader);
         DrawStringToBuffer("Hex View", offsetColPx + 10, 5, _colColumnHeader);
         DrawStringToBuffer("ASCII",    asciiColStartPx,  5, _colColumnHeader);
-        long totalLines  = (_fileLength + _bytesPerLine - 1) / _bytesPerLine;
-        int  visibleLines= (int)(ActualHeight / _lineHeight) + 2;
-        long firstLine   = _currentScrollLine;
-        long lastLine    = Math.Min(firstLine + visibleLines, totalLines);
 
+        long totalLines   = (_fileLength + _bytesPerLine - 1) / _bytesPerLine;
+        int  visibleLines = (int)(ActualHeight / _lineHeight) + 2;
+        long firstLine    = _currentScrollLine;
+        long lastLine     = Math.Min(firstLine + visibleLines, totalLines);
         var modSnap = _modifiedSnapshot;
 
         for (long line = firstLine; line < lastLine; line++)
@@ -356,74 +370,90 @@ public class VirtualizedHexView : FrameworkElement
             RenderLineInternal(line, offset, offsetColPx, asciiColStartPx, modSnap);
         }
     }
+
     private void RenderLine(long lineIdx)
     {
         long offset = lineIdx * _bytesPerLine;
         if (offset >= _fileLength) return;
 
-        int offsetColPx    = (int)(120 * _pixelsPerDip);
-        int hexColPx       = (int)(_bytesPerLine * 3 * _charWidth * _pixelsPerDip);
-        int asciiColStartPx= offsetColPx + hexColPx + (int)(20 * _pixelsPerDip);
+        int offsetColPx     = (int)(120 * _pixelsPerDip);
+        int hexColPx        = (int)(_bytesPerLine * 3 * _charWidth * _pixelsPerDip);
+        int asciiColStartPx = offsetColPx + hexColPx + (int)(20 * _pixelsPerDip);
         int yPx = LineToPixelY(lineIdx);
         FillRect(_backBuffer, _bitmapWidth, 0, yPx, _bitmapWidth, CellH, _colBackground);
-
         RenderLineInternal(lineIdx, offset, offsetColPx, asciiColStartPx, _modifiedSnapshot);
     }
 
     private void RenderLineInternal(long lineIdx, long offset,
         int offsetColPx, int asciiColStartPx, HashSet<long> modSnap)
     {
-        int yPx = LineToPixelY(lineIdx);
+        long yPxLong = (lineIdx - _currentScrollLine) * (long)(_lineHeight * _pixelsPerDip)
+                       + (long)(25 * _pixelsPerDip);
+        if (yPxLong < 0 || yPxLong > int.MaxValue) return;
+        int yPx = (int)yPxLong;
         if (yPx + CellH > _bitmapHeight) return;
+
         DrawStringToBuffer($"{offset:X8}", 10, yPx, _colOffset);
         int bytesToDraw = (int)Math.Min(_bytesPerLine, _fileLength - offset);
+
         if (IsMediaMode && _mediaBuffer != null)
         {
-            int startIdx = (int)(offset - _currentScrollLine * _bytesPerLine);
             for (int i = 0; i < bytesToDraw; i++)
             {
-                int bufIdx = startIdx + i;
+                long bufIdx = offset + i;
                 _lineBuffer[i] = (bufIdx >= 0 && bufIdx < _mediaBuffer.Length)
                     ? _mediaBuffer[bufIdx] : (byte)0;
             }
         }
         else
         {
-            _accessor!.ReadArray(offset, _lineBuffer, 0, bytesToDraw);
+            _accessorLock.EnterReadLock();
+            try
+            {
+                if (_accessor != null)
+                    _accessor.ReadArray(offset, _lineBuffer, 0, bytesToDraw);
+            }
+            finally { _accessorLock.ExitReadLock(); }
         }
 
-        bool hasSelection = HasSelection;
-        long selMin = hasSelection ? SelectionMin : -1;
-        long selMax = hasSelection ? SelectionMax : -1;
-        int hexCellStepPx  = (int)Math.Round(3 * _charWidth * _pixelsPerDip);
-        int hexCellWidthPx = (int)Math.Round(_charWidth * 2.0 * _pixelsPerDip);
+        bool hasSelection  = HasSelection;
+        long selMin        = hasSelection ? SelectionMin : -1;
+        long selMax        = hasSelection ? SelectionMax : -1;
+        int  hexCellStepPx = (int)Math.Round(3 * _charWidth * _pixelsPerDip);
+        int  hexCellWidthPx= (int)Math.Round(_charWidth * 2.0 * _pixelsPerDip);
+
         for (int i = 0; i < bytesToDraw; i++)
         {
             long byteOffset = offset + i;
             byte value      = _lineBuffer[i];
             int  xPx        = offsetColPx + 10 + i * hexCellStepPx;
+
             if (hasSelection && byteOffset >= selMin && byteOffset <= selMax)
                 FillRect(_backBuffer, _bitmapWidth, xPx, yPx,
                     hexCellWidthPx, CellH - 2, _colSelectionBg);
+
             if (modSnap.Contains(byteOffset))
                 FillRect(_backBuffer, _bitmapWidth, xPx, yPx,
                     hexCellWidthPx, CellH - 2, _colModifiedBg);
+
             uint hexColor = (byteOffset == _selectedOffset) ? _colByteSelected
                           : (value == 0x00)                 ? _colByteNull
                                                             : _colByteActive;
             char hi = HexChar(value >> 4);
             char lo = HexChar(value & 0xF);
-            BlitGlyph(hi, xPx,          yPx, hexColor);
-            BlitGlyph(lo, xPx + CellW,  yPx, hexColor);
+            BlitGlyph(hi, xPx,         yPx, hexColor);
+            BlitGlyph(lo, xPx + CellW, yPx, hexColor);
+
             if (byteOffset == _selectedOffset)
                 DrawRect(_backBuffer, _bitmapWidth,
                     xPx - 1, yPx - 1, hexCellWidthPx + 2, CellH, _colByteSelected);
         }
+
         for (int i = 0; i < bytesToDraw; i++)
         {
-            long byteOffset = offset + i;
-            byte value      = _lineBuffer[i];
-            int  xPx        = asciiColStartPx + i * CellW;
+            long byteOffset  = offset + i;
+            byte value       = _lineBuffer[i];
+            int  xPx         = asciiColStartPx + i * CellW;
 
             if (hasSelection && byteOffset >= selMin && byteOffset <= selMax)
                 FillRect(_backBuffer, _bitmapWidth, xPx, yPx, CellW, CellH - 2, _colSelectionBg);
@@ -454,8 +484,8 @@ public class VirtualizedHexView : FrameworkElement
         if (_glyphCache == null) return;
         var glyph = _glyphCache.Get(c, colorArgb);
 
-        int cw = _glyphCache.CellW;
-        int ch = _glyphCache.CellH;
+        int cw    = _glyphCache.CellW;
+        int ch    = _glyphCache.CellH;
         int srcX0 = 0, srcY0 = 0;
         int drawW = cw, drawH = ch;
         if (dstX < 0) { srcX0 -= dstX; drawW += dstX; dstX = 0; }
@@ -480,22 +510,21 @@ public class VirtualizedHexView : FrameworkElement
                     continue;
                 }
                 uint dstPixel = _backBuffer[dstRowStart + col];
-                byte dstR = (byte)(dstPixel >> 16);
-                byte dstG = (byte)(dstPixel >> 8);
-                byte dstB = (byte)(dstPixel);
-                byte srcR = (byte)(srcPixel >> 16);
-                byte srcG = (byte)(srcPixel >> 8);
-                byte srcB = (byte)(srcPixel);
                 int invA = 255 - srcA;
 
+                byte outR = (byte)(((srcPixel >> 16) & 0xFF)
+                            + (((dstPixel >> 16) & 0xFF) * invA + 127 >> 8));
+                byte outG = (byte)(((srcPixel >>  8) & 0xFF)
+                            + (((dstPixel >>  8) & 0xFF) * invA + 127 >> 8));
+                byte outB = (byte)((srcPixel & 0xFF)
+                            + ((dstPixel & 0xFF) * invA + 127 >> 8));
+
                 _backBuffer[dstRowStart + col] =
-                    0xFF000000u |
-                    (uint)((srcR * srcA + dstR * invA) / 255) << 16 |
-                    (uint)((srcG * srcA + dstG * invA) / 255) << 8  |
-                    (uint)((srcB * srcA + dstB * invA) / 255);
+                    0xFF000000u | ((uint)outR << 16) | ((uint)outG << 8) | outB;
             }
         }
     }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void FillRect(uint[] buf, int stride,
         int x, int y, int w, int h, uint colorArgb)
@@ -507,10 +536,10 @@ public class VirtualizedHexView : FrameworkElement
         if (x >= x2 || y >= y2) return;
 
         byte srcA = (byte)(colorArgb >> 24);
-        if (srcA == 0) return; 
+        if (srcA == 0) return;
 
         byte srcR = (byte)(colorArgb >> 16);
-        byte srcG = (byte)(colorArgb >> 8);
+        byte srcG = (byte)(colorArgb >>  8);
         byte srcB = (byte)(colorArgb);
 
         if (srcA == 255)
@@ -519,8 +548,7 @@ public class VirtualizedHexView : FrameworkElement
             for (int row = y; row < y2; row++)
             {
                 int rowStart = row * stride;
-                for (int col = x; col < x2; col++)
-                    buf[rowStart + col] = solid;
+                buf.AsSpan(rowStart + x, x2 - x).Fill(solid);
             }
         }
         else
@@ -532,14 +560,11 @@ public class VirtualizedHexView : FrameworkElement
                 for (int col = x; col < x2; col++)
                 {
                     uint dst = buf[rowStart + col];
-                    byte dstR = (byte)(dst >> 16);
-                    byte dstG = (byte)(dst >> 8);
-                    byte dstB = (byte)(dst);
                     buf[rowStart + col] =
                         0xFF000000u |
-                        (uint)((srcR * srcA + dstR * invA) / 255) << 16 |
-                        (uint)((srcG * srcA + dstG * invA) / 255) << 8  |
-                        (uint)((srcB * srcA + dstB * invA) / 255);
+                        (uint)((srcR * srcA + (byte)(dst >> 16) * invA + 127) >> 8) << 16 |
+                        (uint)((srcG * srcA + (byte)(dst >>  8) * invA + 127) >> 8) <<  8 |
+                        (uint)((srcB * srcA + (byte)(dst)       * invA + 127) >> 8);
                 }
             }
         }
@@ -551,19 +576,20 @@ public class VirtualizedHexView : FrameworkElement
         uint solid = color | 0xFF000000u;
         buf.AsSpan(0, w * h).Fill(solid);
     }
+
     private static void DrawRect(uint[] buf, int stride,
         int x, int y, int w, int h, uint color)
     {
         uint solid = color | 0xFF000000u;
         for (int i = x; i < x + w; i++)
         {
-            if (y >= 0 && y * stride + i < buf.Length)         buf[y * stride + i] = solid;
-            if ((y+h-1) * stride + i < buf.Length)             buf[(y+h-1) * stride + i] = solid;
+            if (y >= 0 && y * stride + i < buf.Length)       buf[y * stride + i] = solid;
+            if ((y + h - 1) * stride + i < buf.Length)       buf[(y + h - 1) * stride + i] = solid;
         }
         for (int j = y; j < y + h; j++)
         {
-            if (j * stride + x < buf.Length)                   buf[j * stride + x] = solid;
-            if (j * stride + x + w - 1 < buf.Length)           buf[j * stride + x + w - 1] = solid;
+            if (j * stride + x < buf.Length)                 buf[j * stride + x] = solid;
+            if (j * stride + x + w - 1 < buf.Length)         buf[j * stride + x + w - 1] = solid;
         }
     }
     private unsafe void FlushBitmapFull()
@@ -577,8 +603,8 @@ public class VirtualizedHexView : FrameworkElement
                 Buffer.MemoryCopy(
                     src,
                     (void*)_bitmap.BackBuffer,
-                    _bitmapWidth * _bitmapHeight * 4,
-                    _bitmapWidth * _bitmapHeight * 4);
+                    _bitmapWidth * _bitmapHeight * 4L,
+                    _bitmapWidth * _bitmapHeight * 4L);
             }
             _bitmap.AddDirtyRect(new Int32Rect(0, 0, _bitmapWidth, _bitmapHeight));
         }
@@ -596,11 +622,14 @@ public class VirtualizedHexView : FrameworkElement
             {
                 foreach (long lineIdx in _dirtyLines)
                 {
-                    int yPx = LineToPixelY(lineIdx);
+                    long yPxLong = (lineIdx - _currentScrollLine) * (long)(_lineHeight * _pixelsPerDip)
+                                   + (long)(25 * _pixelsPerDip);
+                    if (yPxLong < 0 || yPxLong > int.MaxValue) continue;
+                    int yPx = (int)yPxLong;
                     if (yPx < 0 || yPx + CellH > _bitmapHeight) continue;
                     byte* dstPtr = (byte*)_bitmap.BackBuffer + yPx * stride;
                     byte* srcPtr = (byte*)(src + yPx * _bitmapWidth);
-                    Buffer.MemoryCopy(srcPtr, dstPtr, CellH * stride, CellH * stride);
+                    Buffer.MemoryCopy(srcPtr, dstPtr, (long)CellH * stride, (long)CellH * stride);
                     _bitmap.AddDirtyRect(new Int32Rect(0, yPx, _bitmapWidth, CellH));
                 }
             }
@@ -608,73 +637,107 @@ public class VirtualizedHexView : FrameworkElement
         finally { _bitmap.Unlock(); }
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int LineToPixelY(long lineIdx) =>
-        (int)((lineIdx - _currentScrollLine) * _lineHeight * _pixelsPerDip) + (int)(25 * _pixelsPerDip);
+    private int LineToPixelY(long lineIdx)
+    {
+        long v = (lineIdx - _currentScrollLine) * (long)(_lineHeight * _pixelsPerDip)
+                 + (long)(25 * _pixelsPerDip);
+        return (v < int.MinValue || v > int.MaxValue) ? int.MinValue : (int)v;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static char HexChar(int nibble) =>
         (char)(nibble < 10 ? '0' + nibble : 'A' + nibble - 10);
-
     private void DrawStringToBuffer(string text, int xPx, int yPx, uint color)
     {
         if (_glyphCache == null) return;
         for (int i = 0; i < text.Length; i++)
             BlitGlyph(text[i], xPx + i * CellW, yPx, color);
     }
-    public void RefreshBrushCache() => RefreshColorCache(); 
 
+    public void RefreshBrushCache() => RefreshColorCache();
     public void WriteByte(long offset, byte value)
     {
-        if (_accessor == null) return;
-        _accessor.Write(offset, value);
-        lock (_modLock)
+        _accessorLock.EnterWriteLock();
+        try
         {
-            var newSet = new HashSet<long>(_modifiedOffsets) { offset };
-            _modifiedOffsets  = newSet;
-            _modifiedSnapshot = newSet;
+            if (_accessor == null) return;  
+            _accessor.Write(offset, value);
         }
-        MarkLineDirty(offset); 
+        finally { _accessorLock.ExitWriteLock(); }
+
+        lock (_modLock)
+            _modifiedOffsets.Add(offset);
+
+        Dispatcher.BeginInvoke(() => MarkLineDirty(offset));
     }
 
-    public void LoadFile(string filePath)
+   public void LoadFile(string filePath)
     {
-        _accessor?.Dispose();
-        _mmf?.Dispose();
-        if (!File.Exists(filePath)) return;
-        _fileLength = new FileInfo(filePath).Length;
-        _mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0,
-            MemoryMappedFileAccess.ReadWrite);
-        _accessor = _mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
+        _accessorLock.EnterWriteLock();
+        try
+        {
+            _accessor?.Dispose();
+            _mmf?.Dispose();
+            if (!File.Exists(filePath)) return;
+
+            _selectionStart = _selectionEnd = _selectedOffset = -1;
+            lock (_modLock) _modifiedOffsets.Clear();
+            _modifiedSnapshot = new HashSet<long>();
+
+            _fileLength = new FileInfo(filePath).Length;
+            _mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0,
+                MemoryMappedFileAccess.ReadWrite);
+            _accessor = _mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
+        }
+        finally { _accessorLock.ExitWriteLock(); }
+
         _currentScrollLine = 0;
         RequestFullRedraw();
     }
 
-    public void Dispose() { _accessor?.Dispose(); _mmf?.Dispose(); }
-    public void Save()    => _accessor?.Flush();
+    public void Dispose()
+    {
+        _accessorLock.EnterWriteLock();
+        try   { _accessor?.Dispose(); _mmf?.Dispose(); }
+        finally { _accessorLock.ExitWriteLock(); }
+        _accessorLock.Dispose();
+    }
+
+    public void Save() => _accessor?.Flush();
 
     public byte ReadByte(long offset)
     {
-        if (_accessor == null || offset < 0 || offset >= _fileLength) return 0;
-        return _accessor.ReadByte(offset);
+        if (offset < 0 || offset >= _fileLength) return 0;
+        _accessorLock.EnterReadLock();
+        try   { return _accessor?.ReadByte(offset) ?? 0; }
+        finally { _accessorLock.ExitReadLock(); }
     }
 
     public void ReadBytes(long offset, byte[] buffer)
     {
-        if (_accessor == null || offset < 0 || offset >= _fileLength) return;
+        if (offset < 0 || offset >= _fileLength) return;
         int count = (int)Math.Min(buffer.Length, _fileLength - offset);
-        if (count > 0) _accessor.ReadArray(offset, buffer, 0, count);
+        if (count <= 0) return;
+        _accessorLock.EnterReadLock();
+        try   { _accessor?.ReadArray(offset, buffer, 0, count); }
+        finally { _accessorLock.ExitReadLock(); }
     }
 
     public void ReadBytes(long offset, Span<byte> buffer)
     {
-        if (_accessor == null || offset < 0 || offset >= _fileLength) return;
+        if (offset < 0 || offset >= _fileLength) return;
         int count = (int)Math.Min(buffer.Length, _fileLength - offset);
         if (count <= 0) return;
         byte[] tmp = ArrayPool<byte>.Shared.Rent(count);
-        try { _accessor.ReadArray(offset, tmp, 0, count); tmp.AsSpan(0, count).CopyTo(buffer); }
+        try
+        {
+            _accessorLock.EnterReadLock();
+            try   { _accessor?.ReadArray(offset, tmp, 0, count); }
+            finally { _accessorLock.ExitReadLock(); }
+            tmp.AsSpan(0, count).CopyTo(buffer);
+        }
         finally { ArrayPool<byte>.Shared.Return(tmp); }
     }
-
     public void ScrollToOffset(long offset)
     {
         if (offset < 0 || offset >= _fileLength) return;
@@ -687,16 +750,16 @@ public class VirtualizedHexView : FrameworkElement
     public void ChangeEncoding(int codePage)
     {
         InitializeAsciiTable(codePage);
-        RebuildGlyphCache(); 
+        RebuildGlyphCache();
         RequestFullRedraw();
     }
-
     public void JumpToNextChange()
     {
-        var snap = _modifiedSnapshot;
+        var snap = _modifiedSnapshot;  
         if (snap.Count == 0) return;
         long startFrom = _selectedOffset;
-        long? next = null; long bestDist = long.MaxValue;
+        long? next     = null;
+        long bestDist  = long.MaxValue;
         foreach (long o in snap)
             if (o > startFrom && o - startFrom < bestDist) { bestDist = o - startFrom; next = o; }
         if (next == null)
@@ -707,7 +770,7 @@ public class VirtualizedHexView : FrameworkElement
         }
         if (next.HasValue)
         {
-            _selectedOffset = next.Value;
+            _selectedOffset    = next.Value;
             _currentScrollLine = Math.Max(0, _selectedOffset / _bytesPerLine - 2);
             OffsetSelected?.Invoke(this, _selectedOffset);
             RequestFullRedraw();
@@ -733,6 +796,7 @@ public class VirtualizedHexView : FrameworkElement
         }
         catch { for (int i = 0; i < 256; i++) _asciiLookupTable[i] = i >= 32 && i <= 126 ? (char)i : '.'; }
     }
+
     private static void OnSelectedOffsetChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is VirtualizedHexView v)
@@ -764,9 +828,9 @@ public class VirtualizedHexView : FrameworkElement
     {
         base.OnKeyDown(e);
         var action = HotkeyManager.GetAction(Keyboard.Modifiers, e.Key);
-        if (action == EUVAAction.CopyHex)         { CopyAsHex();       e.Handled = true; }
-        else if (action == EUVAAction.CopyCArray)  { CopyAsCArray();   e.Handled = true; }
-        else if (action == EUVAAction.CopyPlainText){ CopyAsPlainText();e.Handled = true; }
+        if (action == EUVAAction.CopyHex)          { CopyAsHex();        e.Handled = true; }
+        else if (action == EUVAAction.CopyCArray)   { CopyAsCArray();    e.Handled = true; }
+        else if (action == EUVAAction.CopyPlainText){ CopyAsPlainText(); e.Handled = true; }
         if (e.Key == Key.F3) { JumpToNextChange(); e.Handled = true; }
     }
 
@@ -815,5 +879,4 @@ public class VirtualizedHexView : FrameworkElement
         for (int i = 0; i < bytes.Length; i++) chars[i] = _asciiLookupTable[bytes[i]];
         Clipboard.SetText(new string(chars));
     }
-
 }
