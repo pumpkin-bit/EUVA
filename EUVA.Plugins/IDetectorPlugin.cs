@@ -1,20 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-
 using EUVA.Core.Interfaces;
-
 namespace EUVA.Plugins;
 
 
 public interface IDetectorPlugin : IDetector
 {
-   
     PluginMetadata Metadata { get; }
-
-    
     void Initialize();
-
-    
     void Cleanup();
 }
 

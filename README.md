@@ -4,37 +4,58 @@
 > Zero bloat. Zero vendor lock-in. Maximum signal.
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) ![Static Analysis](https://img.shields.io/badge/Analysis-Static-4B0082?style=plastic&logo=linux-foundation&logoColor=white) ![Hex](https://img.shields.io/badge/Data-Hex_Manipulation-696969?style=plastic&logo=data-studio&logoColor=white) ![Low Latency](https://img.shields.io/badge/Perf-Low_Latency-FFD700?style=plastic&logo=speedtest&logoColor=black)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20x64-informational)](https://github.com/euva) [![Framework](https://img.shields.io/badge/.NET-8.0--windows-purple)](https://dotnet.microsoft.com) [![Language](https://img.shields.io/badge/Language-C%23%2012.0-brightgreen)](https://learn.microsoft.com/en-us/dotnet/csharp/) ![WPF](https://img.shields.io/badge/UI-WPF-blue?style=plasti&logo=windows&logoColor=white) ![Memory](https://img.shields.io/badge/Memory-Mapped%20Files-lightgrey?style=plastic&logo=speedtest&logoColor=white)
-![Build](https://img.shields.io/badge/Build-Stable-success?style=plastic&logo=github-actions&logoColor=white) ![Version](https://img.shields.io/badge/Release-v1.0-Green?style=plastic&logo=semver&logoColor=white)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20x64-informational)](https://github.com/euva) [![Framework](https://img.shields.io/badge/.NET-8.0--windows-purple)](https://dotnet.microsoft.com) [![Language](https://img.shields.io/badge/Language-C%23%2012.0-brightgreen)](https://learn.microsoft.com/en-us/dotnet/csharp/) ![WPF](https://img.shields.io/badge/UI-WPF-blue?style=plastic&logo=windows&logoColor=white) ![Memory](https://img.shields.io/badge/Memory-Mapped%20Files-lightgrey?style=plastic&logo=speedtest&logoColor=white)
 
+---
 
 ## Manifesto
 
 Most likely, this program answers the question: *what if hex editors were written from scratch in 2026?*
 
-EUVA is a **WPF/C# native application** that operates directly on the binary layer. No heavy runtime frameworks handling PE parsing. No scripting interpreters bolted on as afterthoughts. No 200-MB installs for features you'll never use. What EUVA provides instead:
+EUVA is a **WPF/C# native application** that operates directly on the binary layer. No heavy runtime frameworks. No scripting interpreters bolted on as afterthoughts. No 200-MB installs for features you'll never use.
+
+What EUVA provides:
 
 - A **Memory-Mapped File engine** that scales to arbitrarily large binaries with zero heap pressure
+- A **WriteableBitmap renderer** that bypasses the WPF render pipeline entirely pixel-perfect output at native DPI
+- A **GlyphCache subsystem** that rasterizes each character once and blits it via direct memory copy thereafter
+- A **Dirty Tracking system** with lock-free snapshot reads for zero-latency change visualization
+- A **Transactional Undo system** both step-by-step (`Ctrl+Z`) and full-session rollback (`Ctrl+Shift+Z`)
 - A **structured PE decomposition layer** that turns raw bytes into a navigable semantic tree
-- A **Dirty Tracking system** that achieves nanosecond-precision change verification directly in the renderer
-- A **built-in x86 assembler** that compiles instructions to opcodes inline, with automatic relative offset resolution
+- A **built-in x86 assembler** that compiles instructions to opcodes inline with automatic relative offset resolution
 - A **scriptable patching DSL** (`.euv` format) with live file-watch execution
 - A **plugin-extensible detector pipeline** for packer/protector identification
-- A **fully themeable rendering layer** with a 30-token color palette and hot-reload support
+- A **fully themeable rendering layer** with persistent theme state across sessions
 
 ---
 
 ## Disclaimer
+
 **This program is under active development. Experimental builds may contain bugs or lead to unexpected behavior. Use with caution.**
 
 This software is provided "as is", without warranty of any kind. EUVA is a high-precision instrument designed for educational purposes and security research. The author is not responsible for any system instability, data loss, or legal consequences resulting from the misuse of this tool.
-By using EUVA, you acknowledge that:
-**You are solely responsible for your actions.**
-**You understand the risks of modifying binary files and process memory.**
-**You will respect the laws and regulations of your jurisdiction.**
 
+By using EUVA, you acknowledge that you are solely responsible for your actions, you understand the risks of modifying binary files and process memory, and you will respect the laws and regulations of your jurisdiction.
 
---- 
+---
+
+## Project Structure
+
+The codebase is organized into layered namespaces with clear separation of concerns:
+
+```
+EUVA.Core.Interfaces     — IBinaryMapper, IDetector, IDetectorPlugin, IRegionProvider
+EUVA.Core.Models         — BinaryStructure, DataRegion, DetectionResult, SignatureMatch
+EUVA.Core.Parsers        — PEMapper, SignatureScanner
+EUVA.Core.Detectors      — DetectorManager, ThemidaDetector, UPXDetector
+EUVA.Plugins             — IDetectorPlugin contract, PluginMetadata
+EUVA.Plugins.Samples     — FSGDetectorPlugin (reference implementation)
+EUVA.UI                  — MainWindow, App, HotkeyManager, EUVAAction enum
+EUVA.UI.Controls         — VirtualizedHexView, StructureTreeView, PropertyGrid
+EUVA.UI.Theming          — ThemeManager, ThemeDiagnostics, EuvaSettings
+```
+
+---
 
 ## Core Subsystems
 
@@ -44,7 +65,7 @@ EUVA does not load files into `byte[]` arrays. It maps them directly through the
 
 ```csharp
 _mmf = MemoryMappedFile.CreateFromFile(
-    filePath, FileMode.Open, null, 0, 
+    filePath, FileMode.Open, null, 0,
     MemoryMappedFileAccess.ReadWrite);
 _accessor = _mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
 ```
@@ -58,31 +79,28 @@ _accessor = _mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
 | Flush to disk | Serialization pass | `_accessor.Flush()` — OS flushes dirty pages |
 | Memory pressure | Scales with file size | Scales with *viewport*, not file size |
 
-The renderer operates in a fully virtualized coordinate system. `_currentScrollLine` is the only state separating screen-space from file-space:
+**Span-based I/O:**
+
+All multi-byte reads in the hot path use `ArrayPool<byte>` to avoid allocations and copy into the caller's `Span<byte>`:
 
 ```csharp
-long firstVisibleLine = _currentScrollLine;
-long lastVisibleLine  = Math.Min(firstVisibleLine + visibleLines, totalLines);
-
-for (long line = firstVisibleLine; line < lastVisibleLine; line++)
+public void ReadBytes(long offset, Span<byte> buffer)
 {
-    long offset = line * _bytesPerLine;
-    double y    = (line - firstVisibleLine) * _lineHeight + 25;
-    DrawLine(dc, offset, y, offsetColumnWidth, asciiColumnStart);
+    int count = buffer.Length;
+    byte[] tmp = ArrayPool<byte>.Shared.Rent(count);
+    try { _accessor.ReadArray(offset, tmp, 0, count); tmp.AsSpan(0, count).CopyTo(buffer); }
+    finally { ArrayPool<byte>.Shared.Return(tmp); }
 }
 ```
 
-A 4 GB binary and a 4 KB binary render with identical overhead.
-
 **Scroll Acceleration:**
 
-Mouse wheel input is multiplied by keyboard modifier state, providing three-speed navigation:
+Mouse wheel input is multiplied by keyboard modifier state:
 
 ```csharp
 int multiplier = 1;
 if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) multiplier = 100;
-else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) multiplier = 1000;
-
+else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))  multiplier = 1000;
 int linesToScroll = (e.Delta > 0 ? -3 : 3) * multiplier;
 ```
 
@@ -90,114 +108,170 @@ Default: 3 lines/tick. `Ctrl`: 300 lines/tick. `Shift`: 3000 lines/tick.
 
 ---
 
-### 2. Dirty Tracking System
+### 2. WriteableBitmap Renderer
 
-Dirty Tracking is EUVA's mechanism for instant, zero-latency verification of binary modifications. It is not a diff engine. It is a live coordinate index.
+> **This is the most significant architectural change from the previous version.**
 
-```csharp
-private readonly HashSet<long> _modifiedOffsets = new();
+The previous renderer used WPF's `DrawingContext` (`OnRender` / `DrawText` / `DrawRectangle`). Every frame allocated managed `Brush` and `FormattedText` objects. At large files or high scroll speeds, this produced visible latency and tearing.
 
-public void WriteByte(long offset, byte value)
-{
-    _accessor.Write(offset, value);
-    lock (_modifiedOffsets)
-    {
-        _modifiedOffsets.Add(offset);
-    }
-}
+The current renderer bypasses the WPF render pipeline entirely:
+
+1. All drawing targets a `uint[] _backBuffer` — a CPU-side BGRA32 pixel array
+2. Glyphs are rasterized once into `uint[]` pixel arrays by `GlyphCache` and reused via `BlitGlyph()` (direct `memcpy`)
+3. On frame completion, the back buffer is flushed to a `WriteableBitmap` via an unsafe pointer copy
+4. The `WriteableBitmap` is displayed through a single `<Image>` element — zero WPF layout passes
+
+**Render pipeline per frame:**
+
+```
+RenderFullFrame()
+  ├── FillBackground()           — buf.AsSpan().Fill(solidColor)
+  ├── DrawStringToBuffer()       — column headers via BlitGlyph
+  └── RenderLineInternal() ×N   — for each visible line:
+        ├── FillRect()           — selection background
+        ├── FillRect()           — modified-byte background
+        ├── BlitGlyph()          — hex nibbles (two per byte)
+        └── BlitGlyph()          — ASCII character
+FlushToWriteableBitmap()
+  └── unsafe memcpy(_backBuffer → _bitmap.BackBuffer)
 ```
 
-Every write operation — whether from the script engine, manual editing, or assembler output — registers the exact file offset in `_modifiedOffsets`. The renderer queries this set for every byte it draws:
+**Dirty-line partial updates:**
+
+When only a subset of lines change (e.g., a single byte write), `_dirtyLines` tracks which lines need redraw. `RenderLine(lineIdx)` clears just that line's pixel strip and re-renders it, then flushes only the affected `Int32Rect` region:
 
 ```csharp
-if (_modifiedOffsets.Contains(byteOffset))
-{
-    var modBackground = new SolidColorBrush(
-        Color.FromArgb(80, 255, 0, 128));  // Hot-pink overlay
-    dc.DrawRectangle(modBackground, null,
-        new Rect(x - 2, y - 2, _charWidth * 2.5, _lineHeight));
-}
+_bitmap.AddDirtyRect(new Int32Rect(0, yPx, _bitmapWidth, CellH));
 ```
 
-Modified bytes receive a distinct visual overlay **in the same render pass** as unmodified bytes. There is no diff phase, no second pass, no "compare mode." The moment a byte is written, it is visually distinct from the surrounding data.
-
-**Change Navigation:**
-
-`F3` invokes `JumpToNextChange()`, which walks `_modifiedOffsets` in ascending order from the current selection, wrapping to the minimum offset when exhausted:
-
-```csharp
-var nextChange = _modifiedOffsets
-    .Where(o => o > startSearchFrom)
-    .OrderBy(o => o)
-    .Cast<long?>()
-    .FirstOrDefault();
-
-if (nextChange == null)
-    nextChange = _modifiedOffsets.Min();
-```
-
-This enables rapid verification workflows: run a script patch, press `F3` repeatedly to audit every modified byte individually, verify against expected values in the Inspector.
+Full redraws only occur on scroll, resize, theme change, or file load.
 
 ---
 
-### 3. PE Structural Decomposition (`PEMapper`)
+### 3. GlyphCache Subsystem
 
-`PEMapper` implements `IBinaryMapper` and produces a fully navigable `BinaryStructure` tree from raw PE binary data. Parsing is delegated to AsmResolver for header extraction, but the semantic decomposition, region mapping, and tree construction are native EUVA logic.
+Each unique `(char, colorARGB)` pair is rasterized exactly once using `RenderTargetBitmap` with `TextRenderingMode.Aliased` and `TextFormattingMode.Display` for sub-pixel clarity at non-integer DPI values.
+
+The rasterized `Pbgra32` output (premultiplied alpha) is converted to `Bgra32` (non-premultiplied) before storage, matching the `WriteableBitmap` format:
+
+```csharp
+byte ub = (byte)((pb * 255 + pa / 2) / pa);  // un-premultiply with rounding
+```
+
+Cache key encoding packs `charIndex` and `colorARGB` into a single `long` for O(1) lookup with no allocation:
+
+```csharp
+long key = ((long)(byte)c << 32) | colorArgb;
+```
+
+Colors in the hot path are stored as packed `uint` (`0xAARRGGBB`) — no `Brush` objects, no heap traffic.
+
+**Warmup:** On file load, `WarmupGlyphCache()` pre-rasterizes the full hex character set (`0-9`, `A-F`) in all active colors as a background `Task`, eliminating first-paint stutter.
+
+---
+
+### 4. Dirty Tracking System
+
+Every write operation registers the exact file offset in `_modifiedOffsets`. The renderer never reads `_modifiedOffsets` directly — it reads `_modifiedSnapshot`, an immutable `HashSet<long>` published atomically after each write batch:
+
+```csharp
+private HashSet<long>          _modifiedOffsets;   // writer side (locked)
+private volatile HashSet<long> _modifiedSnapshot;  // reader side (lock-free)
+```
+
+This eliminates lock contention between the script engine (writer) and the render loop (reader). The renderer captures the snapshot reference once per frame:
+
+```csharp
+var modSnap = _modifiedSnapshot;
+// ... iterate over visible bytes, check modSnap.Contains(byteOffset)
+```
+
+Modified bytes receive a distinct `_colModifiedBg` fill drawn **before** the glyph, so the overlay is visible behind the text rather than covering it.
+
+**Change Navigation:**
+
+`F3` jumps to the next modified offset in ascending order, wrapping to the minimum when exhausted.
+
+---
+
+### 5. Transactional Undo System
+
+EUVA maintains two stacks:
+
+```csharp
+private readonly Stack<(long Offset, byte[] Old, byte[] New)> _undoStack = new();
+private readonly Stack<int> _transactionSteps = new();
+```
+
+`_undoStack` records every individual byte-level write as a `(offset, oldBytes, newBytes)` tuple. `_transactionSteps` records how many `_undoStack` entries belong to the most recent script execution run.
+
+**Step-by-step undo (`Ctrl+Z`):** Pops one entry from `_undoStack` and restores the old bytes at that offset.
+
+**Session rollback (`Ctrl+Shift+Z`):** Pops the count from `_transactionSteps` and replays that many step-undos, reverting the entire last script run atomically.
+
+Both operations hold `lock(_undoStack)` for thread safety with the script engine.
+
+---
+
+### 6. PE Structural Decomposition (`PEMapper`)
+
+`PEMapper` implements `IBinaryMapper` and produces a fully navigable `BinaryStructure` tree from raw PE binary data. Parsing is delegated to AsmResolver for header extraction; the semantic decomposition, region mapping, and tree construction are native EUVA logic.
+
+**`IBinaryMapper` interface:**
+
+```csharp
+public interface IBinaryMapper
+{
+    BinaryStructure Parse(ReadOnlySpan<byte> data);
+    IReadOnlyList<DataRegion> GetRegions();
+    DataRegion? FindRegionAt(long offset);
+    void RegisterRegionProvider(IRegionProvider provider);
+    BinaryStructure? RootStructure { get; }
+}
+```
+
+The `RegisterRegionProvider(IRegionProvider)` method allows third-party code to inject additional `DataRegion` sets into the mapper without subclassing:
+
+```csharp
+public interface IRegionProvider
+{
+    IEnumerable<DataRegion> ProvideRegions(BinaryStructure structure, ReadOnlySpan<byte> data);
+}
+```
 
 **Parse Pipeline:**
 
 ```
 Parse(ReadOnlySpan<byte> data)
-    ├── ParseDosHeader()     → IMAGE_DOS_HEADER node + DOS region
+    ├── ParseDosHeader()        → IMAGE_DOS_HEADER node + DOS region
     ├── ParseNtHeaders()
-    │       ├── ParseFileHeader()    → IMAGE_FILE_HEADER node
-    │       └── ParseOptionalHeader() → IMAGE_OPTIONAL_HEADER node
-    ├── ParseSections()      → IMAGE_SECTION_HEADER nodes + Code/Data regions
-    └── ParseDataDirectories() → Import/Export directory nodes
+    │       ├── ParseFileHeader()       → IMAGE_FILE_HEADER node
+    │       └── ParseOptionalHeader()   → IMAGE_OPTIONAL_HEADER node
+    ├── ParseSections()         → IMAGE_SECTION_HEADER nodes + Code/Data regions
+    └── ParseDataDirectories()  → Import/Export directory nodes
 ```
 
-**Section Region Coloring Logic:**
-
-Section type is detected from PE characteristics flags and mapped directly to a WPF `Color`:
+**Section Region Coloring:**
 
 ```csharp
-var color = section.IsContentCode             ? Colors.LightGreen  :
-            section.IsContentInitializedData  ? Colors.LightBlue   :
-            section.IsContentUninitializedData? Colors.LightGray    :
-                                                Colors.LightYellow;
+var color = section.IsContentCode              ? Colors.LightGreen  :
+            section.IsContentInitializedData   ? Colors.LightBlue   :
+            section.IsContentUninitializedData ? Colors.LightGray    :
+                                                 Colors.LightYellow;
 ```
 
 **Reflection-Based Field Resolution:**
 
-PE header fields vary across library versions and AsmResolver API surfaces. `PEMapper` uses a multi-candidate reflection probe to resolve properties robustly without hard-coded field names:
-
-```csharp
-private static object? GetNestedMemberValue(object? obj, params string[] names)
-{
-    foreach (var name in names)
-    {
-        // Walk dotted paths (e.g., "Header.PointerToRawData")
-        // Try Property → fall back to Field
-        // Return first successful resolution
-    }
-    return null;
-}
-```
-
-Calling sites provide ordered fallback lists:
+AsmResolver API surfaces vary across versions. `PEMapper` uses multi-candidate reflection probes to resolve properties without hard-coded paths or conditional compilation:
 
 ```csharp
 var rawPtrVal = GetNestedMemberValue(section,
-    "Header.PointerToRawData",  // AsmResolver 5.x path
+    "Header.PointerToRawData",  // AsmResolver 5.x
     "PointerToRawData",         // flat property
     "Offset");                  // final fallback
 ```
 
-This makes `PEMapper` resilient to upstream API changes without requiring conditional compilation.
-
 **The `DataRegion` Model:**
-
-Every parsed structural element is materialized as a `DataRegion` with precise byte boundaries:
 
 ```csharp
 public class DataRegion
@@ -214,153 +288,54 @@ public class DataRegion
 }
 ```
 
-`RegionType` covers the full PE taxonomy:
-
-| Value | Semantic |
-|---|---|
-| `Header` | DOS/NT header areas |
-| `Code` | Executable sections |
-| `Data` | Initialized data sections |
-| `Import` | Import Address Table region |
-| `Export` | Export Directory region |
-| `Resource` | `.rsrc` section |
-| `Relocation` | `.reloc` section |
-| `Debug` | Debug directory data |
-| `Overlay` | Post-EOF appended data |
-| `Signature` | Authenticode signature region |
-| `Unknown` | Unclassified regions |
+`RegionType` covers the full PE taxonomy: `Header`, `Code`, `Data`, `Import`, `Export`, `Resource`, `Relocation`, `Debug`, `Overlay`, `Signature`, `Unknown`.
 
 ---
 
-### 4. Data Inspector — Type Interpretation Engine
+### 7. Data Inspector — Type Interpretation Engine
 
-The Inspector panel provides simultaneous multi-type interpretation of any selected file offset. All reads go directly through `_accessor.ReadArray()` — no intermediate copies, no allocation.
+The Inspector panel provides simultaneous multi-type interpretation of any selected file offset. All reads pass through the `ReadBytes(offset, Span<byte>)` API — no intermediate copies, no allocation beyond the pool-rented temporary.
 
 **Supported Type Matrix:**
 
-| Type | Size (bytes) | Implementation | Notes |
-|---|---|---|---|
-| `Int8 / UInt8` | 1 | `(sbyte)b \| b` | Binary bit-string display included |
-| `Int16 / UInt16` | 2 | `BitConverter.ToUInt16` | |
-| `DOS Date` | 2 | Bitfield decode | `year = ((v >> 9) & 0x7F) + 1980` |
-| `DOS Time` | 2 | Bitfield decode | `hour = v >> 11`, `min = (v >> 5) & 0x3F`, `sec = (v & 0x1F) * 2` |
-| `Int24 / UInt24` | 3 | Manual byte construction | `b[0] \| (b[1] << 8) \| (b[2] << 16)` |
-| `Int32 / UInt32` | 4 | `BitConverter.ToUInt32` | |
-| `Single (float32)` | 4 | `BitConverter.ToSingle` | IEEE 754 |
-| `time_t (32-bit)` | 4 | `DateTimeOffset.FromUnixTimeSeconds(v)` | Unix epoch |
-| `Int64 / UInt64` | 8 | `BitConverter.ToUInt64` | |
-| `Double (float64)` | 8 | `BitConverter.ToDouble` | IEEE 754 |
-| `FILETIME` | 8 | `DateTime.FromFileTime((long)v)` | 100ns intervals since 1601-01-01 |
-| `OLETIME` | 8 | `DateTime.FromOADate(double)` | COM Automation date |
-| `GUID / UUID` | 16 | `new Guid(b).ToString("B")` | RFC 4122 format |
-| `ULEB128` | Variable | Streaming decode (max 10 bytes) | DWARF/WebAssembly encoding |
-| `SLEB128` | Variable | Sign-extended streaming decode | Signed variant |
+| Type | Size (bytes) | Notes |
+|---|---|---|
+| `Int8 / UInt8` | 1 | Binary bit-string display included |
+| `Int16 / UInt16` | 2 | |
+| `DOS Date` | 2 | `year = ((v >> 9) & 0x7F) + 1980` |
+| `DOS Time` | 2 | `hour = v >> 11`, `min = (v >> 5) & 0x3F`, `sec = (v & 0x1F) * 2` |
+| `Int24 / UInt24` | 3 | Manual byte construction |
+| `Int32 / UInt32` | 4 | `BinaryPrimitives.ReadUInt32LittleEndian` |
+| `Single (float32)` | 4 | IEEE 754 |
+| `time_t (32-bit)` | 4 | Unix epoch |
+| `Int64 / UInt64` | 8 | `BinaryPrimitives.ReadUInt64LittleEndian` |
+| `Double (float64)` | 8 | IEEE 754 |
+| `FILETIME` | 8 | 100-ns intervals since 1601-01-01 |
+| `OLETIME` | 8 | COM Automation date |
+| `GUID / UUID` | 16 | RFC 4122 format |
+| `ULEB128` | Variable | DWARF/WebAssembly, max 10 bytes |
+| `SLEB128` | Variable | Signed variant |
 
-**DOS Timestamp Bitfield Decoding:**
-
-The MS-DOS FAT timestamp encoding packs date and time into two 16-bit words with the following layout:
-
-```
-Date word (16 bits):
-  [15:9]  Year offset from 1980 (0–119 → 1980–2099)
-  [8:5]   Month (1–12)
-  [4:0]   Day (1–31)
-
-Time word (16 bits):
-  [15:11] Hours (0–23)
-  [10:5]  Minutes (0–59)
-  [4:0]   2-second intervals (0–29 → 0–58 seconds)
-```
-
-```csharp
-public static string ToDosDate(ushort v) =>
-    $"{((v >> 9) & 0x7F) + 1980:D4}-{(v >> 5) & 0x0F:D2}-{v & 0x1F:D2}";
-
-public static string ToDosTime(ushort v) =>
-    $"{v >> 11:D2}:{(v >> 5) & 0x3F:D2}:{(v & 0x1F) * 2:D2}";
-```
-
-**ULEB128 / SLEB128 Streaming Decoder:**
-
-Variable-length encodings (used in DWARF debug info, WebAssembly modules, and Android DEX) are decoded by streaming 7-bit groups with continuation bits:
-
-```csharp
-public static (long value, int size) ReadLEB128(byte[] data, bool signed)
-{
-    long result = 0; int shift = 0; int pos = 0;
-    while (pos < data.Length)
-    {
-        byte b = data[pos++];
-        result |= (long)(b & 0x7F) << shift;
-        shift += 7;
-        if ((b & 0x80) == 0)
-        {
-            // Signed: sign-extend if the final group's MSB is set
-            if (signed && (shift < 64) && ((b & 0x40) != 0))
-                result |= -(1L << shift);
-            break;
-        }
-    }
-    return (result, pos);
-}
-```
+Multi-byte reads use `System.Buffers.Binary.BinaryPrimitives` for endian-safe access over `ReadOnlySpan<byte>`.
 
 **Endianness Toggle:**
 
-All multi-byte reads respect the current endian mode (`IsLittleEndian`). Toggling via `BtnEndian_Click` immediately re-parses the current selection:
-
-```csharp
-byte[] GetLE(int count) {
-    var b = GetRaw(count);
-    if (!IsLittleEndian) Array.Reverse(b);
-    return b;
-}
-```
+All multi-byte reads respect the current endian mode (`IsLittleEndian`). Toggling immediately re-parses the current selection.
 
 ---
 
-### 5. Signature Scanner (`SignatureScanner`)
+### 8. Signature Scanner (`SignatureScanner`)
 
 A zero-allocation, `ReadOnlySpan<byte>`-native pattern matching engine with wildcard support.
 
-**Pattern Format:**
-
-Patterns are space-delimited hex byte strings. `??` or `?` denotes a wildcard position that matches any byte value.
+**Pattern Format:** space-delimited hex byte strings. `??` or `?` denotes a wildcard.
 
 ```
-"55 50 58 30"                          // exact match: UPX0
-"60 BE ?? ?? ?? ?? 8D BE ?? ?? ?? ??"  // UPX entry stub with wildcards
-"B8 ?? ?? ?? ?? B9 ?? ?? ?? ?? 50 51 E8"  // Themida entry
+"55 50 58 30"                          // exact: UPX0 marker
+"60 BE ?? ?? ?? ?? 8D BE ?? ?? ?? ??"  // UPX entry stub
 ```
 
-**Parser:**
-
-```csharp
-private static PatternByte[] ParsePattern(string pattern)
-{
-    var parts = pattern.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-    var result = new PatternByte[parts.Length];
-    for (int i = 0; i < parts.Length; i++)
-        result[i] = (parts[i] == "??" || parts[i] == "?")
-            ? new PatternByte { IsWildcard = true }
-            : new PatternByte { Value = Convert.ToByte(parts[i], 16) };
-    return result;
-}
-```
-
-**Matcher:**
-
-```csharp
-private static bool MatchesPattern(ReadOnlySpan<byte> data, PatternByte[] pattern)
-{
-    for (int i = 0; i < pattern.Length; i++)
-        if (!pattern[i].IsWildcard && data[i] != pattern[i].Value)
-            return false;
-    return true;
-}
-```
-
-The outer scan loop slices `ReadOnlySpan<byte>` at each candidate position — no allocations, no copies.
+The outer scan loop slices `ReadOnlySpan<byte>` at each candidate position — no allocations.
 
 **Shannon Entropy Calculator:**
 
@@ -369,18 +344,11 @@ public static double CalculateEntropy(ReadOnlySpan<byte> data)
 {
     Span<int> frequencies = stackalloc int[256];
     foreach (byte b in data) frequencies[b]++;
-
-    double entropy = 0.0;
-    double len     = data.Length;
-    for (int i = 0; i < 256; i++)
-    {
-        if (frequencies[i] == 0) continue;
-        double p = frequencies[i] / len;
-        entropy -= p * Math.Log2(p);
-    }
-    return entropy;  // Bits per byte, range [0.0, 8.0]
+    // ...
 }
 ```
+
+Uses `stackalloc` for the 256-bucket frequency table no heap allocation regardless of input size.
 
 Entropy thresholds used by the detector pipeline:
 
@@ -393,31 +361,30 @@ Entropy thresholds used by the detector pipeline:
 
 ---
 
-### 6. Detector Pipeline (`DetectorManager`)
+### 9. Detector Pipeline (`DetectorManager`)
 
-The detection subsystem is a priority-ordered, async plugin chain. Each registered `IDetector` receives the full file buffer and the parsed `BinaryStructure` tree, then produces a `DetectionResult` with a confidence score in `[0.0, 1.0]`.
+The detection subsystem is a priority-ordered, async plugin chain. Each registered `IDetector` receives a `ReadOnlyMemory<byte>` of the full file and the parsed `BinaryStructure` tree, then produces a `DetectionResult` with a confidence score in `[0.0, 1.0]`.
 
-**Registration and Sorting:**
+`AnalyzeAsync` accepts an `IProgress<string>?` for UI reporting and returns results sorted by confidence descending:
 
 ```csharp
-public void RegisterDetector(IDetector detector)
-{
-    _detectors.Add(detector);
-    _detectors.Sort((a, b) => a.Priority.CompareTo(b.Priority));
-}
+public async Task<List<DetectionResult>> AnalyzeAsync(
+    ReadOnlyMemory<byte> fileData,
+    BinaryStructure structure,
+    IProgress<string>? progress = null)
 ```
 
-Lower priority numbers run first. Built-in detectors:
+Built-in detectors:
 
-| Detector | Priority | Detection Strategy |
-|---|---|---|
-| `ThemidaDetector` | 5 | Signature scan + section name check + Import Table anomaly + entropy |
-| `UPXDetector` | 10 | Signature scan (`UPX0/1/!`) + entry stub pattern + section names + entropy |
-| `FSGDetectorPlugin` | 15 | 3-version signature scan + section sizing heuristics + import anomaly |
+| Detector | Priority | Namespace | Detection Strategy |
+|---|---|---|---|
+| `ThemidaDetector` | 5 | `EUVA.Core.Detectors.Samples` | Signature scan + section name check + Import Table anomaly + entropy |
+| `UPXDetector` | 10 | `EUVA.Core.Detectors.Samples` | Signature scan (`UPX0/1/!`) + entry stub + section names + entropy |
+| `FSGDetectorPlugin` | 15 | `EUVA.Plugins.Samples` | 3-version signature scan + section sizing heuristics + import anomaly |
 
-**Confidence Scoring — UPX Example:**
+**Confidence Scoring UPX Example:**
 
-| Evidence | Confidence Contribution |
+| Evidence | Contribution |
 |---|---|
 | Any UPX signature match | +0.40 |
 | Section named `UPX0` or `UPX1` | +0.40 |
@@ -425,536 +392,17 @@ Lower priority numbers run first. Built-in detectors:
 | Entropy > 7.0 | +0.20 |
 | Total (capped at 1.0) | Max 1.00 |
 
-**Plugin System:**
-
-Third-party detectors can be distributed as standalone `.dll` files and loaded at runtime:
-
-```csharp
-public void LoadFromDirectory(string pluginDirectory)
-{
-    var dllFiles = Directory.GetFiles(pluginDirectory, "*.dll",
-        SearchOption.AllDirectories);
-    foreach (var dllFile in dllFiles)
-    {
-        var assembly = Assembly.LoadFrom(dllFile);
-        LoadFromAssembly(assembly);
-    }
-}
-```
-
-Any class implementing `IDetector` (or `IDetectorPlugin` for richer metadata) is automatically instantiated and registered. `IDetectorPlugin` adds lifecycle hooks:
-
-```csharp
-public interface IDetectorPlugin : IDetector
-{
-    PluginMetadata Metadata { get; }
-    void Initialize();
-    void Cleanup();
-}
-```
-
 ---
 
-## Built-in Assembler (`AsmLogic`)
+### 10. Theme Engine
 
-EUVA includes a proprietary x86 assembler compiled entirely from scratch in C#. No NASM. No Keystone. No external assembly library of any kind. The assembler translates mnemonic strings to raw opcode byte sequences inline, with full support for automatic relative offset calculation.
+EUVA's visual presentation is controlled by `.themes` files. Theme state persists across sessions via `EuvaSettings` (application settings). On startup, `App.xaml.cs` restores the last used theme path; if the file is missing, it falls back to the built-in default with a `ThemeDiagnostics.Warning`.
 
-### Register Table
-
-```csharp
-private static readonly Dictionary<string, byte> Regs = new() {
-    { "eax", 0 }, { "ecx", 1 }, { "edx", 2 }, { "ebx", 3 },
-    { "esp", 4 }, { "ebp", 5 }, { "esi", 6 }, { "edi", 7 }
-};
-```
-
-### Opcode Table
-
-```csharp
-private static readonly Dictionary<string, byte> Ops = new() {
-    { "add", 0x01 }, { "or",  0x09 }, { "and", 0x21 },
-    { "sub", 0x29 }, { "xor", 0x31 }, { "cmp", 0x39 },
-    { "jmp", 0xE9 }, { "mov_eax", 0xB8 }
-};
-```
-
-### Instruction Encoding Reference
-
-#### `nop` — No Operation
-
-```
-Encoding: 0x90
-Length:   1 byte
-```
-
-```csharp
-if (mnemonic == "nop") return new byte[] { 0x90 };
-```
-
-#### `ret` — Return from Procedure
-
-```
-Encoding: 0xC3
-Length:   1 byte
-```
-
-#### `jmp <target>` — Unconditional Jump (Near Relative)
-
-This is the most architecturally significant instruction in the assembler. `jmp` requires the computation of a signed 32-bit relative displacement — the delta between the target address and the instruction's post-execution program counter.
-
-**Encoding formula:**
-
-```
-rel32 = target_address - (current_address + 5)
-```
-
-The `+5` accounts for the 5-byte length of the `jmp rel32` instruction itself (1 opcode byte + 4 displacement bytes). The CPU's instruction pointer advances past the full instruction before the relative offset is applied.
-
-```csharp
-if (mnemonic == "jmp" && tokens.Length == 2)
-{
-    if (long.TryParse(tokens[1], out long targetAddr))
-    {
-        int relativeOffset = (int)(targetAddr - (currentAddr + 5));
-        byte[] offsetBytes = BitConverter.GetBytes(relativeOffset);
-
-        byte[] result = new byte[5];
-        result[0] = 0xE9;  // jmp rel32
-        Buffer.BlockCopy(offsetBytes, 0, result, 1, 4);
-        return result;
-    }
-}
-```
-
-**Example:** Injecting a `jmp` from address `0x00401000` to `0x00402000`:
-
-```
-rel32 = 0x00402000 - (0x00401000 + 5)
-      = 0x00402000 - 0x00401005
-      = 0x00000FFB
-
-Encoding: E9 FB 0F 00 00
-```
-
-This calculation is **critical for cross-section jumps**. When the script engine injects a trampoline from `.text` to injected code in `.data`, the absolute target address must be resolved at assembly time and the relative displacement recalculated. EUVA performs this automatically.
-
-#### `mov <reg>, <imm32>` — Move Immediate to Register
-
-Encodes the "Move Immediate to Register" short form (opcode `B8+rd`):
-
-```csharp
-if (mnemonic == "mov" && tokens.Length == 3)
-{
-    if (Regs.TryGetValue(tokens[1], out byte regIdx)
-        && int.TryParse(tokens[2], out int val))
-    {
-        byte[] result = new byte[5];
-        result[0] = (byte)(0xB8 + regIdx);  // B8 = MOV EAX; B9 = MOV ECX; etc.
-        Buffer.BlockCopy(BitConverter.GetBytes(val), 0, result, 1, 4);
-        return result;
-    }
-}
-```
-
-| Register | Opcode |
-|---|---|
-| `eax` | `B8 <imm32>` |
-| `ecx` | `B9 <imm32>` |
-| `edx` | `BA <imm32>` |
-| `ebx` | `BB <imm32>` |
-| `esp` | `BC <imm32>` |
-| `ebp` | `BD <imm32>` |
-| `esi` | `BE <imm32>` |
-| `edi` | `BF <imm32>` |
-
-#### `<op> <reg>, <reg>` — ALU Register-Register Operations
-
-Two-operand ALU instructions are encoded using the ModRM byte. In register-to-register mode, ModRM has the format `11 src dst` (mod=11b, indicating direct register operands):
-
-```
-ModRM = 0xC0 | (src << 3) | dest
-```
-
-```csharp
-if (Ops.ContainsKey(mnemonic) && tokens.Length == 3)
-{
-    if (Regs.TryGetValue(tokens[1], out byte dest)
-        && Regs.TryGetValue(tokens[2], out byte src))
-    {
-        byte modRM = (byte)(0xC0 + (src << 3) + dest);
-        return new byte[] { Ops[mnemonic], modRM };
-    }
-}
-```
-
-**ModRM encoding example — `xor eax, eax` (the canonical zero idiom):**
-
-```
-dest = Regs["eax"] = 0
-src  = Regs["eax"] = 0
-ModRM = 0xC0 | (0 << 3) | 0 = 0xC0
-
-Encoding: 31 C0
-```
-
-**`xor ebx, ecx`:**
-
-```
-dest = Regs["ebx"] = 3
-src  = Regs["ecx"] = 1
-ModRM = 0xC0 | (1 << 3) | 3 = 0xCB
-
-Encoding: 31 CB
-```
-
-### Complete Instruction Set Reference
-
-| Mnemonic | Operands | Opcode | Length | Notes |
-|---|---|---|---|---|
-| `nop` | — | `90` | 1 | No-op |
-| `ret` | — | `C3` | 1 | Near return |
-| `jmp` | `imm_addr` | `E9 rel32` | 5 | Relative offset auto-calculated |
-| `mov` | `reg, imm32` | `B8+rd imm32` | 5 | Register immediate |
-| `add` | `reg, reg` | `01 /r` | 2 | ModRM register-register |
-| `or` | `reg, reg` | `09 /r` | 2 | |
-| `and` | `reg, reg` | `21 /r` | 2 | |
-| `sub` | `reg, reg` | `29 /r` | 2 | |
-| `xor` | `reg, reg` | `31 /r` | 2 | |
-| `cmp` | `reg, reg` | `39 /r` | 2 | Flags only, no write |
-
----
-
-## EUVA Scripting Language (`.euv` DSL)
-
-EUVA scripts are structured text files with `.euv` extension. The script engine parses and executes them either on-demand (`F5`) or automatically via file-system watch when the file changes on disk.
-
-### Execution Model
-
-Scripts execute in a two-phase pipeline:
-
-1. **Parse phase**: The engine reads all lines, resolves method declarations, and builds `MethodContainer` objects with body line lists and `clink` export declarations.
-2. **Execute phase**: `FinalizeMethod()` iterates over each method's body, calling `ExecuteCommand()` per line. Variables are scoped: local to the method, with optional export to global scope via `clink`.
-
-### Top-Level Structure
-
-```euv
-# Comments use # or //
-start;                  # Required: marks begin of executable body
-
-public:                 # Access modifier for following method
-_createMethod(Name) {
-    # method body
-}
-
-private:               # Private methods cannot export via clink
-_createMethod(Internal) {
-    # body
-}
-
-end;                   # Required: execution aborted if missing
-```
-
-The engine enforces the `end;` sentinel:
-
-```csharp
-if (!isTerminated) throw new Exception("FATAL: No 'end;' flag! Execution aborted.");
-```
-
-### `_createMethod(name)`
-
-Declares a named method block. Methods are the primary unit of logical grouping. A method may be `public:` (can export symbols via `clink`) or `private:` (local execution only).
-
-```euv
-public:
-_createMethod(GodMode) {
-    find(MyFunc = 48 83 EC 28 41 B9 01)
-    MyFunc : nop
-    clink: [MyFunc]
-}
-```
-
-**Execution flow:**
-
-`FinalizeMethod()` runs each body line through `ExecuteCommand()`, then processes `clink` exports:
-
-```csharp
-if (method.Access == "public") {
-    foreach (var exportName in method.Clinks.Keys) {
-        if (localScope.TryGetValue(exportName, out long addr)) {
-            string globalName = $"{method.Name}.{exportName}";
-            globalScope[globalName] = addr;
-        } else {
-            throw new Exception($"Unknown: '{exportName}' not defined in {method.Name}!");
-        }
-    }
-}
-```
-
-After finalization, exported symbols are accessible to subsequent methods as `MethodName.SymbolName` in the global scope.
-
-### Command Reference
-
-#### `find(variable = pattern)`
-
-Scans the loaded binary for the first occurrence of a byte pattern and assigns the file offset to a local variable.
-
-```euv
-find(MyFunc = 48 83 EC 28 41 B9 01)
-```
-
-Pattern format: space-separated hex bytes. `??` is a wildcard matching any byte value.
-
-```euv
-find(StubEntry = 60 BE ?? ?? ?? ?? 8D BE ?? ?? ?? ??)
-```
-
-On match, `MyFunc` is set to the file offset of the first byte of the pattern. On no match, the variable is set to `-1`. The console logs the result:
-
-```
-[Found] MyFunc at 0x00401A30
-```
-
-**Implementation:**
-
-```csharp
-private long FindSignature(string pattern)
-{
-    var p = pattern.Split(' ')
-        .Select(b => b == "??" ? (byte?)null : Convert.ToByte(b, 16))
-        .ToArray();
-
-    for (long i = 0; i < HexView.FileLength - p.Length; i++) {
-        bool m = true;
-        for (int j = 0; j < p.Length; j++)
-            if (p[j] != null && HexView.ReadByte(i + j) != p[j]) { m = false; break; }
-        if (m) return i;
-    }
-    return -1;
-}
-```
-
-#### `set(variable = expression)`
-
-Assigns a computed value to a local variable. The right-hand side is evaluated by `ParseMath()`, which supports hex literals, arithmetic operators, and variable substitution.
-
-```euv
-set(PatchBase = MyFunc + 0x10)
-set(NopEnd    = PatchBase + 4)
-set(NewTarget = 0x00405000)
-```
-
-#### Address `:` Data — Patch Command
-
-The core write instruction. The address expression is on the left of `:`, the payload on the right.
-
-**Syntax:**
-
-```euv
-<address_expr> : <payload>
-```
-
-**Payload types:**
-
-**1. Assembly mnemonics** (assembled inline by `AsmLogic.Assemble`):
-
-```euv
-MyFunc       : nop
-(MyFunc + 1) : nop
-(MyFunc + 4) : mov eax, 999
-(MyFunc + 9) : jmp 0x00405000
-(MyFunc + 14): xor eax, eax
-```
-
-**2. Raw hex bytes:**
-
-```euv
-0x00401000 : 90 90 90 90
-```
-
-**3. ASCII string literals:**
-
-```euv
-0x00402000 : "Hello, World!"
-```
-
-The engine tries assembly first, then string parsing, then raw hex:
-
-```csharp
-bytes = AsmLogic.Assemble(dataPart, addr);
-
-if (bytes == null && dataPart.Contains("\""))
-    bytes = Encoding.ASCII.GetBytes(Regex.Match(dataPart, "\"(.*)\"").Groups[1].Value);
-
-if (bytes == null)
-    bytes = ParseBytes(dataPart);
-```
-
-#### `check <address> : <bytes>` — Conditional Execution
-
-Reads bytes at the given address and halts the patch if they do not match. Used to verify pre-conditions before writing.
-
-```euv
-check MyFunc : 48 83 EC 28
-```
-
-If the bytes at `MyFunc` do not equal `48 83 EC 28`, the command returns early without executing subsequent patch lines.
-
-#### `clink: [symbol1, symbol2, ...]`
-
-Declares which local variables should be exported from the current method to the global scope after execution. Only valid inside `public:` methods.
-
-```euv
-public:
-_createMethod(Scanner) {
-    find(EntryPoint = 55 8B EC)
-    find(ExitPoint  = C9 C3)
-
-    clink: [EntryPoint, ExitPoint]
-}
-
-_createMethod(Patcher) {
-    # Access exported symbols as Scanner.EntryPoint, Scanner.ExitPoint
-    set(target = Scanner.EntryPoint + 0x20)
-    target : nop
-}
-```
-
-### Address Expression Engine (`ParseMath`)
-
-All address expressions in EUVA scripts pass through `ParseMath()`, a full arithmetic evaluator supporting variable substitution, hex literals, and standard operators.
-
-**Processing pipeline:**
-
-1. Replace `.` or `()` with `lastAddress` (the post-write cursor from the previous patch operation)
-2. Substitute all known variable names with their decimal string representations (longest-key-first to prevent partial matches)
-3. Convert `0xNNN` hex literals to decimal
-4. Evaluate the resulting expression using `System.Data.DataTable.Compute()`
-
-```csharp
-private long ParseMath(string expr, long lastAddr, Dictionary<string, long> effectiveScope)
-{
-    string formula = expr.Trim().Replace(" ", "");
-    if (formula == "." || formula == "()") return lastAddr;
-
-    // Substitute variables (longest first to avoid partial matches)
-    var sortedKeys = effectiveScope.Keys.OrderByDescending(k => k.Length).ToList();
-    foreach (var key in sortedKeys) {
-        string pattern = @"\b" + Regex.Escape(key) + @"\b";
-        formula = Regex.Replace(formula, pattern, effectiveScope[key].ToString("D"));
-    }
-
-    // Hex literal conversion
-    formula = Regex.Replace(formula, @"0x([0-9A-Fa-f]+)", m =>
-        long.Parse(m.Groups[1].Value, NumberStyles.HexNumber).ToString());
-
-    return Convert.ToInt64(new DataTable().Compute(formula, null));
-}
-```
-
-**Examples:**
-
-| Expression | Resolves to |
-|---|---|
-| `MyFunc` | Address found by `find()` |
-| `MyFunc + 4` | `MyFunc` plus 4 |
-| `(MyFunc + 1)` | Parenthesized arithmetic |
-| `0x00401000` | Absolute hex address |
-| `MyFunc + 0x10` | Mixed variable + hex |
-| `.` | `lastAddress` (cursor from previous write) |
-| `Scanner.EntryPoint + 8` | Cross-method exported symbol |
-
-### Complete `.euv` Example — GodMode Patch
-
-This is the canonical test script shipped with EUVA:
-
-```euv
-start;
-
-public:
-_createMethod(GodMode) {
-
-    # Locate the function prologue in the binary
-    find(MyFunc = 48 83 EC 28 41 B9 01)
-
-    # NOP out the first 4 bytes of the function
-    MyFunc       : nop
-    (MyFunc + 1) : nop
-    (MyFunc + 2) : nop
-    (MyFunc + 3) : nop
-
-    # mov eax, 999  — force a known return value
-    (MyFunc + 4) : mov eax, 999
-
-    # Export MyFunc address for use by other methods
-    clink: [MyFunc]
-}
-
-end;
-```
-
-**Execution trace:**
-
-```
-[Found] MyFunc at 0x00401A30
-[Write] 0x00401A30 ← 90 (nop)
-[Write] 0x00401A31 ← 90 (nop)
-[Write] 0x00401A32 ← 90 (nop)
-[Write] 0x00401A33 ← 90 (nop)
-[Write] 0x00401A34 ← BF E7 03 00 00 (mov edi, 999)
-[Link]  GodMode.MyFunc -> 0x401A30
-```
-
-### Script Engine — Live Watch Mode
-
-EUVA monitors the active script file for changes using `FileSystemWatcher`:
-
-```csharp
-_scriptWatcher = new FileSystemWatcher(dir) {
-    Filter        = file,
-    NotifyFilter  = NotifyFilters.LastWrite | NotifyFilters.Size
-                  | NotifyFilters.FileName  | NotifyFilters.CreationTime,
-    EnableRaisingEvents = true
-};
-_scriptWatcher.Changed += OnScriptUpdated;
-```
-
-On any change event, the engine waits 400ms (debounce), then re-executes the full script. **Save the file in your editor → EUVA re-patches the binary immediately.** This enables a tight iterative loop: write a patch, save, see the Dirty Track overlay update, verify in the Inspector, refine, repeat.
-
-`F5` forces immediate re-execution without waiting for a file change.
-
----
-
-## Theme Engine
-
-EUVA's visual presentation is fully controlled by `.themes` files — plain-text palettes defining 30 canonical UI color tokens.
-
-### Token Reference
-
-| Token | Default (R,G,B,A) | Used In |
-|---|---|---|
-| `Background` | `30,30,30,255` | Main window |
-| `Sidebar` | `37,37,38,255` | Left panel |
-| `Toolbar` | `45,45,48,255` | Menu bar |
-| `Border` | `62,62,66,255` | Panel borders |
-| `Hex_Background` | `30,30,30,255` | HexView canvas |
-| `Hex_ByteActive` | `173,216,230,255` | Non-null byte text |
-| `Hex_ByteNull` | `80,80,80,255` | Zero byte text |
-| `Hex_ByteSelected` | `255,255,0,255` | Selected byte |
-| `Hex_AsciiPrintable` | `144,238,144,255` | Printable ASCII chars |
-| `Hex_AsciiNonPrintable` | `100,100,100,255` | Non-printable chars |
-| `TreeIconSection` | `86,156,214,255` | Section nodes |
-| `TreeIconField` | `78,201,176,255` | Field nodes |
-| `PropertyKey` | `156,220,254,255` | Inspector labels |
-| `PropertyValue` | `206,145,120,255` | Inspector values |
-| `ConsoleError` | `244,71,71,255` | Error log lines |
-| `ConsoleSuccess` | `106,153,85,255` | Success log lines |
-
-### `.themes` File Format
+**`.themes` File Format:**
 
 ```themes
 # EUVA Color Palette
 # Format: TokenName = R , G , B , A
-# A = 255 means fully opaque
 
 Background         = 18 , 18 , 18 , 255
 Hex_Background     = 18 , 18 , 18 , 255
@@ -964,128 +412,253 @@ Hex_AsciiPrintable = 100, 255, 100, 255
 ConsoleError       = 255,  80,  80, 255
 ```
 
-**Parser rules (No-Hysteria mode):**
+Parser rules: `#` starts an inline comment; malformed lines are skipped without aborting the file; values outside `[0, 255]` are rejected per-line; every parsed token is injected as both a `Color` and a frozen `SolidColorBrush` into `Application.Current.Resources`.
 
-- `#` starts an inline comment; everything after it on the line is ignored
-- Blank and comment-only lines are silently skipped
-- Malformed lines log an error and are skipped — the rest of the file continues loading
-- Channel values outside `[0, 255]` are rejected per-line without aborting the file
-- Every successfully parsed token is injected as both a `Color` and a frozen `SolidColorBrush` into `Application.Current.Resources`, enabling `DynamicResource` bindings throughout the entire WPF tree
+All color reads in `VirtualizedHexView` go through `ThemeColor(key, fallback)` and are stored as packed `uint` ARGB values for the hot path. `RefreshColorCache()` rebuilds these packed values and triggers a full redraw whenever a theme is applied.
 
-### Hotkey Configuration (`.htk`)
+**Token Reference (partial):**
 
-Hotkeys are defined in plain-text `.htk` files:
+| Token | Default (R,G,B,A) | Used In |
+|---|---|---|
+| `Background` | `30,30,30,255` | Main window |
+| `Hex_Background` | `30,30,30,255` | HexView canvas |
+| `Hex_ByteActive` | `173,216,230,255` | Non-null byte text |
+| `Hex_ByteNull` | `80,80,80,255` | Zero byte text |
+| `Hex_ByteSelected` | `255,255,0,255` | Selected byte |
+| `Hex_AsciiPrintable` | `144,238,144,255` | Printable ASCII chars |
+| `Hex_AsciiNonPrintable` | `100,100,100,255` | Non-printable chars |
+| `PropertyKey` | `156,220,254,255` | Inspector labels |
+| `PropertyValue` | `206,145,120,255` | Inspector values |
+| `ConsoleError` | `244,71,71,255` | Error log lines |
+| `ConsoleSuccess` | `106,153,85,255` | Success log lines |
+
+---
+
+### 11. Hotkey Configuration (`.htk`)
+
+Hotkeys are defined in plain-text `.htk` files and loaded via `HotkeyManager.Load(path)`. The default bindings are applied via `HotkeyManager.LoadDefaults()` at startup if no `.htk` path is configured.
+
+**`.htk` Format:**
 
 ```
 # EUVA Hotkey Configuration
 # Format: Action = Modifier + Key
 
-NavInspector   = Alt + D1
-NavSearch      = Alt + D2
-NavDetections  = Alt + D3
-NavProperties  = Alt + D4
-CopyHex        = Control + C
-CopyCArray     = Control + Shift + C
-CopyPlainText  = Ctrl+Alt+C
+NavInspector  = Alt + D1
+NavSearch     = Alt + D2
+NavDetections = Alt + D3
+NavProperties = Alt + D4
+CopyHex       = Control + C
+CopyCArray    = Control + Shift + C
+Undo          = Control + Z
+FullUndo      = Control + Shift + Z
 ```
 
-Available actions:
+**`EUVAAction` Enum:**
 
 | Action | Default Binding | Effect |
 |---|---|---|
 | `NavInspector` | `Alt+1` | Switch to Inspector tab |
-| `NavSearch` | `Alt+2` | Switch to Search tab, focus input |
+| `NavSearch` | `Alt+2` | Switch to Search tab |
 | `NavDetections` | `Alt+3` | Switch to Detections tab |
 | `NavProperties` | `Alt+4` | Switch to Properties tab |
 | `CopyHex` | `Ctrl+C` | Copy selection as hex string |
 | `CopyCArray` | `Ctrl+Shift+C` | Copy selection as C byte array |
 | `CopyPlainText` | `Ctrl+Alt+C` | Copy selection as decoded text |
+| `Undo` | `Ctrl+Z` | Undo last byte write |
+| `FullUndo` | `Ctrl+Shift+Z` | Revert entire last script run |
+
+Both `.htk` path and active `.themes` path are persisted together in a config file at `AppBaseDir/hotkey.cfg` (two lines: htk path, theme path).
+
+---
+
+## Built-in Assembler (`AsmLogic`)
+
+EUVA includes a proprietary x86 assembler implemented in C# with no external library dependencies. It translates mnemonic strings to raw opcode byte sequences with automatic relative offset calculation.
+
+### Register Table
+
+```csharp
+{ "eax",0 }, { "ecx",1 }, { "edx",2 }, { "ebx",3 },
+{ "esp",4 }, { "ebp",5 }, { "esi",6 }, { "edi",7 }
+```
+
+### Complete Instruction Set Reference
+
+| Mnemonic | Operands | Opcode | Length | Notes |
+|---|---|---|---|---|
+| `nop` | — | `90` | 1 | No-op |
+| `ret` | — | `C3` | 1 | Near return |
+| `jmp` | `imm_addr` | `E9 rel32` | 5 | `rel32 = target - (current + 5)` |
+| `mov` | `reg, imm32` | `B8+rd imm32` | 5 | Register immediate |
+| `add` | `reg, reg` | `01 /r` | 2 | ModRM `0xC0 \| (src<<3) \| dest` |
+| `or` | `reg, reg` | `09 /r` | 2 | |
+| `and` | `reg, reg` | `21 /r` | 2 | |
+| `sub` | `reg, reg` | `29 /r` | 2 | |
+| `xor` | `reg, reg` | `31 /r` | 2 | |
+| `cmp` | `reg, reg` | `39 /r` | 2 | Flags only |
+
+**`jmp` displacement calculation:**
+
+```
+rel32 = target_address - (current_address + 5)
+
+Example: jmp from 0x00401000 to 0x00402000
+rel32 = 0x00402000 - 0x00401005 = 0x00000FFB
+Encoding: E9 FB 0F 00 00
+```
+
+**`mov reg, imm32` opcode assignment:**
+
+`eax`→`B8`, `ecx`→`B9`, `edx`→`BA`, `ebx`→`BB`, `esp`→`BC`, `ebp`→`BD`, `esi`→`BE`, `edi`→`BF`
+
+---
+
+## EUVA Scripting Language (`.euv` DSL)
+
+EUVA scripts are structured text files with `.euv` extension. The script engine parses and executes them on-demand (`F5`) or automatically via `FileSystemWatcher` when the file changes on disk.
+
+### Execution Model
+
+Scripts execute in a two-phase pipeline:
+
+1. **Parse phase**: The engine reads all lines, resolves method declarations, builds `MethodContainer` objects with body line lists and `clink` export declarations.
+2. **Execute phase**: `FinalizeMethod()` iterates over each method's body, calling `ExecuteCommand()` per line. Every write is pushed to `_undoStack`; the total step count for the run is pushed to `_transactionSteps` on completion.
+
+### Top-Level Structure
+
+```euv
+# Comments use # or //
+start;                    # Required: marks begin of executable body
+
+public:
+_createMethod(Name) {
+    # method body
+}
+
+private:
+_createMethod(Internal) {
+    # body
+}
+
+end;                      # Required: execution aborted if missing
+```
+
+### Command Reference
+
+#### `find(variable = pattern)`
+
+Scans the binary for the first occurrence of a byte pattern. `??` is a wildcard.
+
+```euv
+find(MyFunc = 48 83 EC 28 41 B9 01)
+find(Stub   = 60 BE ?? ?? ?? ?? 8D BE ?? ?? ?? ??)
+```
+
+#### `set(variable = expression)`
+
+Assigns a computed value. The right-hand side is evaluated by `ParseMath()` supports hex literals, arithmetic, and variable substitution.
+
+```euv
+set(PatchBase = MyFunc + 0x10)
+set(NewTarget = 0x00405000)
+```
+
+#### `<address_expr> : <payload>` Patch Command
+
+The core write instruction. Payload types: assembly mnemonics (via `AsmLogic`), raw hex bytes, or ASCII string literals in double quotes.
+
+```euv
+MyFunc       : nop
+(MyFunc + 4) : mov eax, 999
+(MyFunc + 9) : jmp 0x00402000
+0x00401000   : 90 90 90 90
+0x00402000   : "Hello"
+```
+
+The engine tries assembly first, then string parsing, then raw hex.
+
+#### `check <address> : <bytes>`
+
+Reads bytes at the address and halts the script if they do not match. Used to verify pre-conditions before writing.
+
+```euv
+check MyFunc : 48 83 EC 28
+```
+
+#### `clink: [symbol1, symbol2, ...]`
+
+Exports local variables from a `public:` method to the global scope under `MethodName.SymbolName`.
+
+```euv
+public:
+_createMethod(Scanner) {
+    find(EntryPoint = 55 8B EC)
+    clink: [EntryPoint]
+}
+
+_createMethod(Patcher) {
+    set(target = Scanner.EntryPoint + 0x20)
+    target : nop
+}
+```
+
+### Address Expression Engine (`ParseMath`)
+
+All address expressions pass through `ParseMath()`: variable substitution (longest-key-first to prevent partial matches), hex literal conversion, and evaluation via `System.Data.DataTable.Compute()`. `.` or `()` resolves to the last-written address.
+
+### Complete `.euv` Example
+
+```euv
+start;
+
+public:
+_createMethod(Mode) {
+
+    find(MyFunc = 48 83 EC 28 41 B9 01)
+
+    MyFunc       : nop
+    (MyFunc + 1) : nop
+    (MyFunc + 2) : nop
+    (MyFunc + 3) : nop
+    (MyFunc + 4) : mov eax, 999
+
+    clink: [MyFunc]
+}
+
+end;
+```
+
+### Live Watch Mode
+
+`FileSystemWatcher` monitors the active script file. On any change event (400 ms debounce), the engine re-executes the full script. `F5` forces immediate re-execution without waiting for a file event.
 
 ---
 
 ## Encoding Support
 
-EUVA's ASCII panel decodes bytes using a pre-computed lookup table initialized for any Windows code page:
-
-```csharp
-public void InitializeAsciiTable(int codePage)
-{
-    var encoding = Encoding.GetEncoding(codePage);
-    byte[] allBytes = new byte[256];
-    for (int i = 0; i < 256; i++) allBytes[i] = (byte)i;
-    string decoded = encoding.GetString(allBytes);
-    // Populate _asciiLookupTable[256]
-}
-```
-
-Supported code pages (menu-selectable):
+The ASCII panel uses a pre-computed 256-entry lookup table initialized via `Encoding.GetEncoding(codePage)`. The table is regenerated on encoding change and the viewport invalidated immediately.
 
 | Code Page | Encoding |
 |---|---|
-| 28591 | ISO-8859-1 (Latin-1), default |
-| 1251 | Windows Cyrillic |
+| 1251 | Windows Cyrillic (default) |
+| 28591 | ISO-8859-1 (Latin-1) |
 | 1252 | Windows Western |
 | 65001 | UTF-8 |
-| Any valid Windows code page | Via `Encoding.GetEncoding(codePage)` |
-
-The table is regenerated on encoding change and the viewport invalidated immediately.
 
 ---
 
 ## MediaHex Mode
 
-A secondary render mode that streams raw binary files as grayscale ASCII art video at 60 FPS, using the hex viewport as a canvas. Brightness is mapped through a 10-character density ramp:
+A secondary render mode that streams raw binary files as grayscale ASCII art at 60 FPS using the hex viewport as a canvas. Brightness maps through a 10-character density ramp: `" .:-=+*#%@"`. `0x00` → space (black), `0xFF` → `@` (white).
 
-```csharp
-private readonly string _videoRamp = " .:-=+*#%@";
-int rampIndex = value * (_videoRamp.Length - 1) / 255;
-displayChar   = _videoRamp[rampIndex];
-```
-
-Byte value `0x00` maps to space (black). Byte value `0xFF` maps to `@` (white). The ASCII panel effectively becomes a 24×N-row grayscale display.
-
-The engine uses `CompositionTarget.Rendering` for frame delivery, synchronized to the WPF composition clock, and reads raw frames sequentially from a `FileStream` with `FileOptions.SequentialScan`:
-
-```csharp
-int bytesRead = _rawVideoStream.Read(_frameBuffer, 0, _videoTotalSize);
-if (bytesRead < _videoTotalSize)
-{
-    _rawVideoStream.Position = 0;  // Loop
-    return;
-}
-HexView.SetMediaFrame(_frameBuffer);
-```
-
----
-
-## Build Requirements
-
-| Component | Requirement |
-|---|---|
-| Runtime | .NET 8.0 Windows |
-| Language | C# 12.0 |
-| UI Framework | WPF (`net8.0-windows`) |
-| Nullable | Enabled |
-| PE Parsing | AsmResolver 5.5.1 |
-| Architecture | x64 |
-| OS | Windows 10 / 11 |
-
-```xml
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <LangVersion>12.0</LangVersion>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
-</Project>
-```
+The engine uses `CompositionTarget.Rendering` for frame delivery, synchronized to the WPF composition clock. Raw frames are read sequentially from a `FileStream` with `FileOptions.SequentialScan`. When the stream is exhausted, playback loops from position 0.
 
 ---
 
 ## Writing a Detector Plugin
 
-Implement `IDetectorPlugin` and distribute as a `.dll`:
+Implement `IDetectorPlugin` (in namespace `EUVA.Plugins`) and distribute as a `.dll`:
 
 ```csharp
 public class MyPackerDetector : IDetectorPlugin
@@ -1130,15 +703,32 @@ public class MyPackerDetector : IDetectorPlugin
 }
 ```
 
-Drop the compiled `.dll` into the plugins directory. EUVA loads it automatically at startup.
+Drop the compiled `.dll` into the plugins directory. `DetectorManager.LoadFromDirectory()` loads it automatically at startup. Any class implementing `IDetector` or `IDetectorPlugin` is automatically instantiated and registered.
 
 ---
 
-## Transactional Safety (Undo)
-Never worry about corrupting a binary again. EUVA HexEngine features a robust, multi-level undo system:
-* **Step-by-Step Rollback (`Ctrl + Z`):** Undo individual byte patches one by one.
-* **Session Rollback (`Ctrl + Shift + Z`):** Revert all changes made during the entire script execution session 
+## Build Requirements
 
+| Component | Requirement |
+|---|---|
+| Runtime | .NET 8.0 Windows |
+| Language | C# 12.0 |
+| UI Framework | WPF (`net8.0-windows`) |
+| Nullable | Enabled |
+| PE Parsing | AsmResolver 5.5.1 |
+| Architecture | x64 |
+| OS | Windows 10 / 11 |
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+</Project>
+```
 
 ---
 
@@ -1159,11 +749,11 @@ the Free Software Foundation, either version 3 of the License, or
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
@@ -1172,7 +762,6 @@ Professional PE Static Analysis Tool
 
 Educational tool for reverse engineering research.
 Use responsibly and in accordance with applicable laws.
-
 ```
 
 ---

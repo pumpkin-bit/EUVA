@@ -5,14 +5,8 @@ using EUVA.Core.Models;
 
 namespace EUVA.Core.Parsers;
 
-
-
-
 public class SignatureScanner
 {
-    
-    
-    
     
     public static List<SignatureMatch> FindPattern(ReadOnlySpan<byte> data, string pattern, string signatureName)
     {
@@ -39,9 +33,6 @@ public class SignatureScanner
         return matches;
     }
 
-    
-    
-    
     public static long FindFirst(ReadOnlySpan<byte> data, string pattern)
     {
         var patternBytes = ParsePattern(pattern);
@@ -57,9 +48,6 @@ public class SignatureScanner
 
         return -1;
     }
-
-    
-    
     
     public static List<SignatureMatch> FindInRange(ReadOnlySpan<byte> data, long offset, long size, 
         string pattern, string signatureName)
@@ -80,9 +68,6 @@ public class SignatureScanner
         return matches;
     }
 
-    
-    
-    
     private static PatternByte[] ParsePattern(string pattern)
     {
         var parts = pattern.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -106,10 +91,6 @@ public class SignatureScanner
 
         return result;
     }
-
-    
-    
-    
     private static bool MatchesPattern(ReadOnlySpan<byte> data, PatternByte[] pattern)
     {
         if (data.Length != pattern.Length)
@@ -130,9 +111,7 @@ public class SignatureScanner
         public bool IsWildcard;
     }
 
-    
-    
-    
+
     public static double CalculateEntropy(ReadOnlySpan<byte> data)
     {
         if (data.Length == 0)
@@ -158,9 +137,7 @@ public class SignatureScanner
         return entropy;
     }
 
-    
-    
-    
+
     public static Dictionary<string, double> AnalyzeSectionEntropy(ReadOnlySpan<byte> data, 
         IEnumerable<DataRegion> regions)
     {

@@ -7,16 +7,12 @@ using System.Windows.Media;
 
 namespace EUVA.UI.Theming;
 
-
 public sealed class ThemeManager
 {
  
-
     private static ThemeManager? _instance;
     public static ThemeManager Instance => _instance ??= new ThemeManager();
     private ThemeManager() { }
-
-  
 
     private static readonly Regex _lineRegex = new(
         @"^[\w_]+\s*=\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})$",

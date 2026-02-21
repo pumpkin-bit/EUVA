@@ -66,7 +66,6 @@ public class DetectorManager
         }
     }
 
-    
     public async Task<List<DetectionResult>> AnalyzeAsync(ReadOnlyMemory<byte> fileData, 
         BinaryStructure structure, IProgress<string>? progress = null)
     {

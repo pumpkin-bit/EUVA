@@ -1,5 +1,3 @@
-SPDX-License-Identifier: GPL-3.0-or-later
-
 NavInspector   = Alt + D5
 NavSearch      = Alt + D2
 NavDetections  = Alt + D3
