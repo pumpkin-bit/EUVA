@@ -96,6 +96,12 @@
                     <MenuItem Header="Macintosh (Cyrillic)" Click="ChangeEncoding_Click" Tag="10007"/>
                     <MenuItem Header="UTF-8" Click="ChangeEncoding_Click" Tag="65001"/>
                 </MenuItem>
+
+                <MenuItem Header="Load YARAx Rules" Click="BtnLoadYaraRules_Click"/> 
+                <MenuItem Header="Run YARAx" Click="BtnRunYaraScan_Click"/> 
+                <MenuItem Header="Cancel YARAx" Click="BtnCancelYaraScan_Click"/> 
+
+
                 <MenuItem Header="_View">
                 <MenuItem x:Name="MagicModeMenuItem" 
                         Header="Activate MediaHex" 
@@ -193,18 +199,50 @@
 </TabItem>
 
                     <TabItem Header="Detections">
-                        <ListView x:Name="DetectionList" Background="#1E1E1E" BorderThickness="0" Foreground="#DCDCDC">
-                            <ListView.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BorderBrush="#3E3E42" BorderThickness="0,0,0,1" Padding="5">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#4EC9B0"/>
-                                            <TextBlock Text="{Binding Type}" Foreground="#9CDCFE" FontSize="11"/>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                          
+                            <Border Grid.Row="0" Background="#252528"
+                                    BorderBrush="#3E3E42" BorderThickness="0,0,0,1"
+                                    Padding="8,3">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="TxtDetectionStatus"
+                                               Text="Run Detectors or load YARA rules to begin"
+                                               Foreground="#606060" FontSize="10"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="TxtYaraMatchCount"
+                                               Grid.Column="1" Text=""
+                                               Foreground="#6A9955" FontSize="10"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </Grid>
+                            </Border>
+
+                           
+                            <ListView x:Name="DetectionList"
+                                      Grid.Row="1"
+                                      Background="#1E1E1E" BorderThickness="0"
+                                      Foreground="#DCDCDC"
+                                      VirtualizingPanel.IsVirtualizing="True"
+                                      VirtualizingPanel.VirtualizationMode="Recycling"
+                                      MouseDoubleClick="DetectionList_MouseDoubleClick">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="#3E3E42" BorderThickness="0,0,0,1" Padding="5">
+                                        </Border>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Grid>
                     </TabItem>
 
                     <TabItem Header="Properties">

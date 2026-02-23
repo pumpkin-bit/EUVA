@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 
 using System.Buffers;
 using System.Buffers.Binary;
@@ -279,6 +281,7 @@ public partial class MainWindow : Window
 
         InitializeSystemSettings();
         InitializeDetectors();
+        InitializeYara();
     }
 
     public void Log(string message, Brush color)
@@ -389,6 +392,13 @@ public partial class MainWindow : Window
             HexView.Regions = _mapper.GetRegions().ToList();
             StatusText.Text = $"Loaded: {Path.GetFileName(filePath)} ({fileSize:N0} bytes)";
             LogMessage("File mapped successfully (MMF mode)");
+
+            lock (_undoStack)
+            {
+                _undoStack.Clear();
+                _transactionSteps.Clear();
+            }
+            OnFileLoaded();
         }
         catch (Exception ex)
         {
@@ -461,7 +471,10 @@ public partial class MainWindow : Window
                     BitConverter.ToString(_inspectorBuf, 0, 4)));
                 items.Add(new InspectorItem("Single (float32)", fv.ToString("G6"), "-"));
                 items.Add(new InspectorItem("time_t (32 бит)",
-                    DateTimeOffset.FromUnixTimeSeconds(uv).DateTime.ToString(), "Unix"));
+                    uv <= int.MaxValue
+                        ? DateTimeOffset.FromUnixTimeSeconds(uv).DateTime.ToString()
+                        : "Invalid",
+                    "Unix"));
             }
             if (remaining >= 8)
             {
@@ -473,9 +486,17 @@ public partial class MainWindow : Window
                     BitConverter.ToString(_inspectorBuf, 0, 8)));
                 items.Add(new InspectorItem("Double (float64)", dv.ToString("G8"), "-"));
                 items.Add(new InspectorItem("FILETIME",
-                    DateTime.FromFileTime((long)uv).ToString(), "Win32"));
+                    uv <= 2_650_467_743_999_999_999UL
+                        ? DateTime.FromFileTime((long)uv).ToString()
+                        : "Invalid",
+                    "Win32"));
+
+                // valid range 
                 items.Add(new InspectorItem("OLETIME",
-                    DateTime.FromOADate(dv).ToString(), "OLE"));
+                    !double.IsNaN(dv) && dv >= -657434.0 && dv <= 2958465.99999999
+                        ? DateTime.FromOADate(dv).ToString()
+                        : "Invalid",
+                    "OLE"));
             }
             if (remaining >= 16)
                 items.Add(new InspectorItem("GUID / UUID",
@@ -489,7 +510,10 @@ public partial class MainWindow : Window
                     uleb.value.ToString(), $"Size: {uleb.size}"));
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Log($"[Inspector] Decode error at 0x{offset:X8}: {ex.Message}", Brushes.OrangeRed);
+        }
         DataInspectorList.ItemsSource = items;
     }
 
@@ -540,7 +564,11 @@ public partial class MainWindow : Window
                 var results  = await _detectorManager.AnalyzeAsync(
                     mem, _mapper.RootStructure, progress);
 
+                DetectionList.ItemsSource = null;
+                DetectionList.Items.Clear();
                 DetectionList.ItemsSource = results;
+                ResetYaraState();
+
                 LogMessage($"Analysis complete. Found {results.Count} matches.");
                 if (results.Count > 0)
                     LogMessage($"Best match: {_detectorManager.GetBestMatch(results)}");

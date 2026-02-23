@@ -1,6 +1,8 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
@@ -96,6 +98,8 @@ public class VirtualizedHexView : FrameworkElement
             return result;
         }
     }
+
+    // mmf
     private MemoryMappedFile?         _mmf;
     private MemoryMappedViewAccessor? _accessor;
     private readonly ReaderWriterLockSlim _accessorLock = new(LockRecursionPolicy.NoRecursion);
@@ -118,6 +122,7 @@ public class VirtualizedHexView : FrameworkElement
     private int CellW => (int)Math.Ceiling(_charWidth  * _pixelsPerDip);
     private int CellH => (int)Math.Ceiling(_lineHeight * _pixelsPerDip);
 
+    //bitmap
     private WriteableBitmap? _bitmap;
     private uint[]           _backBuffer   = Array.Empty<uint>();
     private int              _bitmapWidth  = 0;
@@ -125,13 +130,20 @@ public class VirtualizedHexView : FrameworkElement
     private bool _fullRedrawNeeded = true;
     private readonly HashSet<long> _dirtyLines = new();
 
+    //glyphcache
     private GlyphCache? _glyphCache;
     private char[] _asciiLookupTable = new char[256];
     private int    _currentCodePage  = 1251;
     private byte[] _lineBuffer       = new byte[256];
     private readonly object   _modLock         = new();
     private readonly HashSet<long>  _modifiedOffsets = new();
-    private volatile HashSet<long>  _modifiedSnapshot = new();  
+    private volatile HashSet<long>  _modifiedSnapshot = new();
+
+    // yara
+    private uint                     _colYaraHit;
+    private readonly object          _yaraLock     = new();
+    private readonly HashSet<long>   _yaraOffsets  = new();
+    private volatile HashSet<long>   _yaraSnapshot = new();
 
     private uint _colBackground;
     private uint _colOffset;
@@ -149,6 +161,8 @@ public class VirtualizedHexView : FrameworkElement
 
     public bool   IsMediaMode { get; set; } = false;
     private byte[]? _mediaBuffer;
+
+    //mediamode density ascii
     private readonly string _videoRamp = " .:-=+*#%@";
     public Brush CurrentColor { get; set; } = Brushes.Green;
 
@@ -229,6 +243,7 @@ public class VirtualizedHexView : FrameworkElement
         _colAsciiExt      = ColorToArgb(Color.FromRgb( 60, 120,  60));
         _colSelectionBg   = ColorToArgb(Color.FromArgb(100,  51, 153, 255));
         _colModifiedBg    = ColorToArgb(Color.FromArgb( 80, 255,   0, 128));
+        _colYaraHit       = ColorToArgb(Color.FromArgb(100, 255, 255,   0)); 
 
         RebuildGlyphCache();
         RequestFullRedraw();
@@ -436,6 +451,10 @@ public class VirtualizedHexView : FrameworkElement
                 FillRect(_backBuffer, _bitmapWidth, xPx, yPx,
                     hexCellWidthPx, CellH - 2, _colModifiedBg);
 
+            if (_yaraSnapshot.Contains(byteOffset))
+                FillRect(_backBuffer, _bitmapWidth, xPx, yPx,
+                    hexCellWidthPx, CellH - 2, _colYaraHit);
+
             uint hexColor = (byteOffset == _selectedOffset) ? _colByteSelected
                           : (value == 0x00)                 ? _colByteNull
                                                             : _colByteActive;
@@ -457,6 +476,9 @@ public class VirtualizedHexView : FrameworkElement
 
             if (hasSelection && byteOffset >= selMin && byteOffset <= selMax)
                 FillRect(_backBuffer, _bitmapWidth, xPx, yPx, CellW, CellH - 2, _colSelectionBg);
+
+            if (_yaraSnapshot.Contains(byteOffset))
+                FillRect(_backBuffer, _bitmapWidth, xPx, yPx, CellW, CellH - 2, _colYaraHit);
 
             char displayChar;
             uint asciiColor;
@@ -704,6 +726,12 @@ public class VirtualizedHexView : FrameworkElement
     }
 
     public void Save() => _accessor?.Flush();
+    public MemoryMappedFile? GetMemoryMappedFile()
+    {
+        _accessorLock.EnterReadLock();
+        try   { return _mmf; }
+        finally { _accessorLock.ExitReadLock(); }
+    }
 
     public byte ReadByte(long offset)
     {
@@ -777,6 +805,46 @@ public class VirtualizedHexView : FrameworkElement
         }
     }
 
+    public void SetYaraOffsets(IEnumerable<long> offsets)
+    {
+        lock (_yaraLock)
+        {
+            _yaraOffsets.Clear();
+            if (offsets != null)
+                foreach (var o in offsets)
+                    _yaraOffsets.Add(o);
+            _yaraSnapshot = new HashSet<long>(_yaraOffsets);
+        }
+        RequestFullRedraw();
+    }
+
+    // yara logic for saving and navigating matches works through a snapshot of the offsets where the matches were.
+    public bool JumpToNextYara()
+    {
+        var snap = _yaraSnapshot;
+        if (snap.Count == 0) return false;
+        long startFrom = _selectedOffset;
+        long? next     = null;
+        long bestDist  = long.MaxValue;
+        foreach (long o in snap)
+            if (o > startFrom && o - startFrom < bestDist) { bestDist = o - startFrom; next = o; }
+        if (next == null)
+        {
+            long minVal = long.MaxValue;
+            foreach (long o in snap) if (o < minVal) minVal = o;
+            if (minVal != long.MaxValue) next = minVal;
+        }
+        if (next.HasValue)
+        {
+            _selectedOffset    = next.Value;
+            _currentScrollLine = Math.Max(0, _selectedOffset / _bytesPerLine - 2);
+            OffsetSelected?.Invoke(this, _selectedOffset);
+            RequestFullRedraw();
+            return true;
+        }
+        return false;
+    }
+
     public void InitializeAsciiTable(int codePage)
     {
         _currentCodePage = codePage;
@@ -831,7 +899,16 @@ public class VirtualizedHexView : FrameworkElement
         if (action == EUVAAction.CopyHex)          { CopyAsHex();        e.Handled = true; }
         else if (action == EUVAAction.CopyCArray)   { CopyAsCArray();    e.Handled = true; }
         else if (action == EUVAAction.CopyPlainText){ CopyAsPlainText(); e.Handled = true; }
-        if (e.Key == Key.F3) { JumpToNextChange(); e.Handled = true; }
+
+        if (e.Key == Key.F3 && Keyboard.Modifiers == ModifierKeys.Shift)
+        {
+            if (JumpToNextYara()) e.Handled = true;
+        }
+        else if (e.Key == Key.F3 && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            JumpToNextChange();
+            e.Handled = true;
+        }
     }
 
     private long HitTest(Point pos)
