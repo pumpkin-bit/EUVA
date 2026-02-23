@@ -14,13 +14,15 @@ public class FSGDetectorPlugin : IDetectorPlugin
     public string Name => "FSG Detector Plugin";
     public string Version => "1.0.0";
     public int Priority => 15;
+    private const int SmallSectionThreshold = 1024;
+    private const double EntropyThreshold = 7.0;
+    private const double SignatureConfidence = 0.6;
+    private const double EntropyConfidence = 0.15;
 
     public PluginMetadata Metadata => new()
     {
         Author = "EUVA Contributors",
         Description = "Detects FSG (Fast Small Good) packer v1.x-2.x",
-        // Url = "https://github.com/euva/plugins",
-        LastUpdated = new DateTime(2025, 2, 10),
         SupportedPackers = new List<string> { "FSG 1.0", "FSG 1.3", "FSG 2.0" }
     };
 
@@ -75,7 +77,7 @@ public class FSGDetectorPlugin : IDetectorPlugin
                 {
                     allSignatures.AddRange(matches);
                     detectedVersion = version;
-                    baseConfidence = 0.6;
+                    baseConfidence = SignatureConfidence;
                     break;
                 }
             }
@@ -91,7 +93,7 @@ public class FSGDetectorPlugin : IDetectorPlugin
 
 
                 bool hasSmallSections = sections.Children
-                    .Any(s => s.Size.HasValue && s.Size < 1024);
+                    .Any(s => s.Size.HasValue && s.Size < SmallSectionThreshold);
 
                 if (hasSmallSections)
                     baseConfidence += 0.1;
@@ -104,9 +106,9 @@ public class FSGDetectorPlugin : IDetectorPlugin
 
 
             var entropy = SignatureScanner.CalculateEntropy(data);
-            if (entropy > 7.0)
+            if (entropy > EntropyThreshold)
             {
-                baseConfidence += 0.15;
+                baseConfidence += EntropyConfidence;
             }
 
 
@@ -143,18 +145,5 @@ public class FSGDetectorPlugin : IDetectorPlugin
                 }
             };
         });
-    }
-
-    private bool AnalyzeSectionCharacteristics(BinaryStructure sections)
-    {
-        if (sections.Children.Count < 2)
-            return false;
-        var firstSection = sections.Children[0];
-        var secondSection = sections.Children.Count > 1 ? sections.Children[1] : null;
-
-        if (firstSection.Size < 1024 && secondSection?.Size > 10000)
-            return true;
-
-        return false;
     }
 }

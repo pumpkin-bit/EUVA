@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 
+using System.Runtime.InteropServices;
 using EUVA.Core.Interfaces;
 using EUVA.Core.Models;
 using EUVA.Core.Parsers;
@@ -13,6 +14,12 @@ public class UPXDetector : IDetector
     public string Name => "UPX Detector";
     public string Version => "1.0";
     public int Priority => 10;
+    private const double SignatureConfidence = 0.4;
+    private const double Upx0SectionConfidence = 0.4;
+    private const double DotUpxSectionConfidence = 0.3;
+    private const double EntropyConfidence = 0.2;
+    private const double EntropyThreshold = 7.0;
+    
 
     private static readonly string[] UPX_SIGNATURES = new[]
     {
@@ -44,7 +51,7 @@ public class UPXDetector : IDetector
             }
 
             if (signatures.Count > 0)
-                confidence += 0.4;
+                confidence += SignatureConfidence;
 
 
             var sections = structure.FindByPath("Sections");
@@ -53,16 +60,16 @@ public class UPXDetector : IDetector
                 var sectionNames = sections.Children.Select(c => c.Name.ToUpperInvariant()).ToList();
 
                 if (sectionNames.Contains("UPX0") || sectionNames.Contains("UPX1"))
-                    confidence += 0.4;
+                    confidence += Upx0SectionConfidence;
 
                 if (sectionNames.Contains(".UPX0") || sectionNames.Contains(".UPX1"))
-                    confidence += 0.3;
+                    confidence += DotUpxSectionConfidence;
             }
 
 
             var entropy = SignatureScanner.CalculateEntropy(data);
-            if (entropy > 7.0)
-                confidence += 0.2;
+            if (entropy > EntropyThreshold)   
+                confidence += EntropyConfidence;
 
             if (confidence == 0.0)
                 return null;
