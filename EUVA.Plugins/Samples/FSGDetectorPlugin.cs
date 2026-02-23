@@ -19,7 +19,7 @@ public class FSGDetectorPlugin : IDetectorPlugin
     {
         Author = "EUVA Contributors",
         Description = "Detects FSG (Fast Small Good) packer v1.x-2.x",
-       // Url = "https://github.com/euva/plugins",
+        // Url = "https://github.com/euva/plugins",
         LastUpdated = new DateTime(2025, 2, 10),
         SupportedPackers = new List<string> { "FSG 1.0", "FSG 1.3", "FSG 2.0" }
     };
@@ -43,11 +43,11 @@ public class FSGDetectorPlugin : IDetectorPlugin
 
     public bool CanAnalyze(BinaryStructure structure)
     {
-       
+
         if (structure.Type != "Root" || structure.Name != "PE File")
             return false;
 
-      
+
         var sections = structure.FindByPath("Sections");
         if (sections?.Children.Count is >= 2 and <= 4)
             return true;
@@ -66,62 +66,62 @@ public class FSGDetectorPlugin : IDetectorPlugin
             var detectedVersion = "";
             double baseConfidence = 0.0;
 
-            
+
             foreach (var (version, pattern) in FSG_SIGNATURES)
             {
                 var matches = SignatureScanner.FindPattern(data, pattern, $"FSG {version}");
-                
+
                 if (matches.Count > 0)
                 {
                     allSignatures.AddRange(matches);
                     detectedVersion = version;
-                    baseConfidence = 0.6; 
+                    baseConfidence = 0.6;
                     break;
                 }
             }
 
-            
+
             var sections = structure.FindByPath("Sections");
             if (sections != null)
             {
-                
+
                 var sectionNames = sections.Children
                     .Select(c => c.Name.ToUpperInvariant())
                     .ToList();
 
-                
+
                 bool hasSmallSections = sections.Children
                     .Any(s => s.Size.HasValue && s.Size < 1024);
 
                 if (hasSmallSections)
                     baseConfidence += 0.1;
 
-                
+
                 var firstSection = sections.Children.FirstOrDefault();
                 if (firstSection?.Size is > 0 and < 512)
                     baseConfidence += 0.15;
             }
 
-            
+
             var entropy = SignatureScanner.CalculateEntropy(data);
             if (entropy > 7.0)
             {
                 baseConfidence += 0.15;
             }
 
-            
+
             var imports = structure.FindByPath("Data Directories", "Import Directory");
             if (imports != null)
             {
                 var importRva = imports.Children
                     .FirstOrDefault(c => c.Name == "RVA")?.Value as uint?;
 
-                
+
                 if (importRva == 0)
                     baseConfidence += 0.1;
             }
 
-            
+
             if (baseConfidence == 0.0 && allSignatures.Count == 0)
                 return null;
 
@@ -145,19 +145,10 @@ public class FSGDetectorPlugin : IDetectorPlugin
         });
     }
 
-    
-    
-    
     private bool AnalyzeSectionCharacteristics(BinaryStructure sections)
     {
         if (sections.Children.Count < 2)
             return false;
-
-        
-        
-        
-        
-
         var firstSection = sections.Children[0];
         var secondSection = sections.Children.Count > 1 ? sections.Children[1] : null;
 

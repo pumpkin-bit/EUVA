@@ -11,25 +11,25 @@ namespace EUVA.UI.Theming;
 
 public sealed class EuvaSettings
 {
- 
+
 
     private static EuvaSettings? _default;
 
-   
+
     public static EuvaSettings Default => _default ??= Load();
 
-  
+
     [JsonPropertyName("lastThemePath")]
     public string LastThemePath { get; set; } = string.Empty;
 
- 
+
 
     private static string SettingsFilePath =>
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "EUVA", "settings.json");
 
-  
+
     public void Save()
     {
         try

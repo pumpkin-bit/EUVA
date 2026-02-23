@@ -9,7 +9,7 @@ namespace EUVA.UI.Theming;
 
 public sealed class ThemeManager
 {
- 
+
     private static ThemeManager? _instance;
     public static ThemeManager Instance => _instance ??= new ThemeManager();
     private ThemeManager() { }
@@ -18,7 +18,7 @@ public sealed class ThemeManager
         @"^[\w_]+\s*=\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-   
+
     public static readonly IReadOnlyDictionary<string, (byte R, byte G, byte B, byte A)> DefaultTheme =
         new Dictionary<string, (byte, byte, byte, byte)>(StringComparer.Ordinal)
         {
@@ -40,11 +40,11 @@ public sealed class ThemeManager
             { "Hex_Background",         ( 30,  30,  30, 255) },
             { "Hex_OffsetForeground",   (160, 160, 160, 255) },
             { "HexOffset",              (160, 160, 160, 255) },
-            { "Hex_ByteActive",         (173, 216, 230, 255) },  // LightBlue
-            { "Hex_ByteNull",           ( 80,  80,  80, 255) },  // dim grey
-            { "Hex_ByteSelected",       (255, 255,   0, 255) },  // Yellow
-            { "Hex_ByteHighlight",      ( 78, 201, 176,  80) },  // teal tint
-            { "Hex_AsciiPrintable",     (144, 238, 144, 255) },  // LightGreen
+            { "Hex_ByteActive",         (173, 216, 230, 255) },
+            { "Hex_ByteNull",           ( 80,  80,  80, 255) },
+            { "Hex_ByteSelected",       (255, 255,   0, 255) },
+            { "Hex_ByteHighlight",      ( 78, 201, 176,  80) },
+            { "Hex_AsciiPrintable",     (144, 238, 144, 255) },
             { "Hex_AsciiNonPrintable",  (100, 100, 100, 255) },
             // Structure tree
             { "TreeBackground",         ( 37,  37,  38, 255) },
@@ -63,7 +63,7 @@ public sealed class ThemeManager
             { "ConsoleSuccess",         (106, 153,  85, 255) },
         };
 
-  
+
     public void ApplyDefaultTheme()
     {
         foreach (var kvp in DefaultTheme)
@@ -80,21 +80,21 @@ public sealed class ThemeManager
         ThemeDiagnostics.BeginParse(path);
 
         int lineIndex = 0;
-        int loaded    = 0;
-        int total     = 0;
+        int loaded = 0;
+        int total = 0;
 
         foreach (var rawLine in File.ReadLines(path))
         {
             lineIndex++;
 
-        
+
             var line = StripComment(rawLine).Trim();
             if (line.Length == 0)
                 continue;
 
             total++;
 
-          
+
             var match = _lineRegex.Match(line);
             if (!match.Success)
             {
@@ -102,7 +102,7 @@ public sealed class ThemeManager
                 continue;
             }
 
-        
+
             string[] channelStrings = {
                 match.Groups[1].Value, match.Groups[2].Value,
                 match.Groups[3].Value, match.Groups[4].Value
@@ -125,7 +125,7 @@ public sealed class ThemeManager
             if (!rangeOk)
                 continue;
 
-           
+
             var key = line[..line.IndexOf('=')].Trim();
 
             InjectResource(key, Color.FromArgb(channels[3], channels[0], channels[1], channels[2]));
@@ -135,14 +135,14 @@ public sealed class ThemeManager
         ThemeDiagnostics.ThemeApplied(loaded, total);
     }
 
-   
+
     public void SaveThemePath(string path)
     {
         EuvaSettings.Default.LastThemePath = path;
         EuvaSettings.Default.Save();
     }
 
-     public void ResetToDefault()
+    public void ResetToDefault()
     {
         EuvaSettings.Default.LastThemePath = string.Empty;
         EuvaSettings.Default.Save();
@@ -150,17 +150,17 @@ public sealed class ThemeManager
         ThemeDiagnostics.Info("Theme reset to built-in default.");
     }
 
- 
+
     private static void InjectResource(string key, Color color)
     {
         var resources = Application.Current.Resources;
         var brush = new SolidColorBrush(color);
-        brush.Freeze();                  
+        brush.Freeze();
         resources[key + "_Color"] = color;
-        resources[key]            = brush;
+        resources[key] = brush;
     }
 
-  
+
 
     private static string StripComment(string line)
     {

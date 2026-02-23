@@ -3,7 +3,6 @@ Sidebar                =   0,   0,   0, 255
 Toolbar                =   0,   0,   0, 255
 Border                 = 255, 255, 255, 255  
 SeparatorLine          = 255, 255, 255, 255
-
 ForegroundPrimary      = 255, 255, 255, 255  
 ForegroundSecondary    = 200, 200, 200, 255   
 ForegroundDisabled     =  80,  80,  80, 255
@@ -11,7 +10,6 @@ ForegroundDisabled     =  80,  80,  80, 255
 Hex_Background         =   0,   0,   0, 255
 Hex_OffsetForeground   = 150, 150, 150, 255   
 HexOffset              = 150, 150, 150, 255
-
 Hex_ByteActive         = 255, 255, 255, 255
 Hex_ByteNull           =  40,  40,  40, 255
 Hex_ByteSelected       = 255, 255, 255, 255

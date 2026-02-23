@@ -10,7 +10,7 @@ namespace EUVA.UI.Controls;
 public partial class StructureTreeView : UserControl
 {
     public static readonly DependencyProperty RootStructureProperty =
-        DependencyProperty.Register(nameof(RootStructure), typeof(BinaryStructure), 
+        DependencyProperty.Register(nameof(RootStructure), typeof(BinaryStructure),
             typeof(StructureTreeView), new PropertyMetadata(null, OnRootStructureChanged));
 
     public BinaryStructure? RootStructure

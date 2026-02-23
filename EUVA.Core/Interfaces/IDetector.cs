@@ -4,7 +4,7 @@ namespace EUVA.Core.Interfaces;
 
 public interface IDetector
 {
-    
+
     string Name { get; }
     string Version { get; }
     int Priority { get; }

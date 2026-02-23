@@ -70,7 +70,7 @@ public partial class PropertyGrid : UserControl
         if (structure.DisplayValue != null)
             properties.Add(new("Display", structure.DisplayValue));
 
-      
+
         foreach (var meta in structure.Metadata)
         {
             properties.Add(new(meta.Key, meta.Value?.ToString() ?? ""));

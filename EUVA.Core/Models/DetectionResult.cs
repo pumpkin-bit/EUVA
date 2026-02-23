@@ -11,7 +11,7 @@ public class DetectionResult
     public List<SignatureMatch> Signatures { get; init; } = new();
     public Dictionary<string, string> Metadata { get; init; } = new();
     public string DetectorName { get; init; } = string.Empty;
-    public override string ToString() => 
+    public override string ToString() =>
         $"{Name} {Version ?? ""} ({Type}, {Confidence:P0})".Trim();
 }
 

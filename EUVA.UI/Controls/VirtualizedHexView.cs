@@ -36,10 +36,10 @@ public class VirtualizedHexView : FrameworkElement
             int cellW, int cellH, double pixelsPerDip)
         {
             _glyphTypeface = glyphTypeface;
-            _fontSize      = fontSize;
-            _cellW         = cellW;
-            _cellH         = cellH;
-            _pixelsPerDip  = pixelsPerDip;
+            _fontSize = fontSize;
+            _cellW = cellW;
+            _cellH = cellH;
+            _pixelsPerDip = pixelsPerDip;
         }
 
         public uint[] Get(char c, uint colorArgb)
@@ -53,10 +53,10 @@ public class VirtualizedHexView : FrameworkElement
         {
             double dipW = _cellW / _pixelsPerDip;
             double dipH = _cellH / _pixelsPerDip;
-            double dpi  = 96.0  * _pixelsPerDip;
+            double dpi = 96.0 * _pixelsPerDip;
 
             byte r = (byte)(colorArgb >> 16);
-            byte g = (byte)(colorArgb >>  8);
+            byte g = (byte)(colorArgb >> 8);
             byte b = (byte)(colorArgb);
             var brush = new SolidColorBrush(Color.FromArgb(255, r, g, b));
             brush.Freeze();
@@ -87,10 +87,10 @@ public class VirtualizedHexView : FrameworkElement
             var result = new uint[_cellW * _cellH];
             for (int i = 0; i < result.Length; i++)
             {
-                byte pb = raw[i * 4 + 0];  
-                byte pg = raw[i * 4 + 1];  
-                byte pr = raw[i * 4 + 2];  
-                byte pa = raw[i * 4 + 3];  
+                byte pb = raw[i * 4 + 0];
+                byte pg = raw[i * 4 + 1];
+                byte pr = raw[i * 4 + 2];
+                byte pa = raw[i * 4 + 3];
 
                 if (pa == 0) { result[i] = 0; continue; }
                 result[i] = ((uint)pa << 24) | ((uint)pr << 16) | ((uint)pg << 8) | pb;
@@ -100,50 +100,50 @@ public class VirtualizedHexView : FrameworkElement
     }
 
     // mmf
-    private MemoryMappedFile?         _mmf;
+    private MemoryMappedFile? _mmf;
     private MemoryMappedViewAccessor? _accessor;
     private readonly ReaderWriterLockSlim _accessorLock = new(LockRecursionPolicy.NoRecursion);
 
     private long _fileLength;
-    public  long FileLength => _fileLength;
+    public long FileLength => _fileLength;
     private long _currentScrollLine = 0;
-    private long _selectionStart    = -1;
-    private long _selectionEnd      = -1;
-    private bool HasSelection  => _selectionStart != -1 && _selectionEnd != -1;
-    private long SelectionMin  => Math.Min(_selectionStart, _selectionEnd);
-    private long SelectionMax  => Math.Max(_selectionStart, _selectionEnd);
+    private long _selectionStart = -1;
+    private long _selectionEnd = -1;
+    private bool HasSelection => _selectionStart != -1 && _selectionEnd != -1;
+    private long SelectionMin => Math.Min(_selectionStart, _selectionEnd);
+    private long SelectionMax => Math.Max(_selectionStart, _selectionEnd);
     private long _selectedOffset = -1;
-    private int  _bytesPerLine   = 24;
-    private double _lineHeight   = 18;
-    private double _charWidth    = 9;
-    private double _fontSize     = 13;
+    private int _bytesPerLine = 24;
+    private double _lineHeight = 18;
+    private double _charWidth = 9;
+    private double _fontSize = 13;
     private double _pixelsPerDip = 1.0;
 
-    private int CellW => (int)Math.Ceiling(_charWidth  * _pixelsPerDip);
+    private int CellW => (int)Math.Ceiling(_charWidth * _pixelsPerDip);
     private int CellH => (int)Math.Ceiling(_lineHeight * _pixelsPerDip);
 
     //bitmap
     private WriteableBitmap? _bitmap;
-    private uint[]           _backBuffer   = Array.Empty<uint>();
-    private int              _bitmapWidth  = 0;
-    private int              _bitmapHeight = 0;
+    private uint[] _backBuffer = Array.Empty<uint>();
+    private int _bitmapWidth = 0;
+    private int _bitmapHeight = 0;
     private bool _fullRedrawNeeded = true;
     private readonly HashSet<long> _dirtyLines = new();
 
     //glyphcache
     private GlyphCache? _glyphCache;
     private char[] _asciiLookupTable = new char[256];
-    private int    _currentCodePage  = 1251;
-    private byte[] _lineBuffer       = new byte[256];
-    private readonly object   _modLock         = new();
-    private readonly HashSet<long>  _modifiedOffsets = new();
-    private volatile HashSet<long>  _modifiedSnapshot = new();
+    private int _currentCodePage = 1251;
+    private byte[] _lineBuffer = new byte[256];
+    private readonly object _modLock = new();
+    private readonly HashSet<long> _modifiedOffsets = new();
+    private volatile HashSet<long> _modifiedSnapshot = new();
 
     // yara
-    private uint                     _colYaraHit;
-    private readonly object          _yaraLock     = new();
-    private readonly HashSet<long>   _yaraOffsets  = new();
-    private volatile HashSet<long>   _yaraSnapshot = new();
+    private uint _colYaraHit;
+    private readonly object _yaraLock = new();
+    private readonly HashSet<long> _yaraOffsets = new();
+    private volatile HashSet<long> _yaraSnapshot = new();
 
     private uint _colBackground;
     private uint _colOffset;
@@ -159,7 +159,7 @@ public class VirtualizedHexView : FrameworkElement
 
     private readonly Image _image = new() { Stretch = Stretch.None };
 
-    public bool   IsMediaMode { get; set; } = false;
+    public bool IsMediaMode { get; set; } = false;
     private byte[]? _mediaBuffer;
 
     //mediamode density ascii
@@ -195,7 +195,7 @@ public class VirtualizedHexView : FrameworkElement
 
         InitializeAsciiTable(28591);
         ClipToBounds = true;
-        Focusable    = true;
+        Focusable = true;
         AddVisualChild(_image);
         AddLogicalChild(_image);
 
@@ -219,8 +219,8 @@ public class VirtualizedHexView : FrameworkElement
 
     protected override Size MeasureOverride(Size available)
     {
-        double w = double.IsInfinity(available.Width)  ? 1000 : available.Width;
-        double h = double.IsInfinity(available.Height) ? 800  : available.Height;
+        double w = double.IsInfinity(available.Width) ? 1000 : available.Width;
+        double h = double.IsInfinity(available.Height) ? 800 : available.Height;
         _image.Measure(new Size(w, h));
         return new Size(w, h);
     }
@@ -232,18 +232,18 @@ public class VirtualizedHexView : FrameworkElement
     }
     public void RefreshColorCache()
     {
-        _colBackground    = ColorToArgb(ThemeColor("Hex_Background",       Color.FromRgb( 30,  30,  30)));
-        _colOffset        = ColorToArgb(ThemeColor("HexOffset",             Color.FromRgb(160, 160, 160)));
-        _colByteActive    = ColorToArgb(ThemeColor("Hex_ByteActive",        Color.FromRgb(173, 216, 230)));
-        _colByteNull      = ColorToArgb(ThemeColor("Hex_ByteNull",          Color.FromRgb( 80,  80,  80)));
-        _colByteSelected  = ColorToArgb(ThemeColor("Hex_ByteSelected",      Color.FromRgb(255, 255,   0)));
-        _colAsciiPrintable= ColorToArgb(ThemeColor("Hex_AsciiPrintable",    Color.FromRgb(144, 238, 144)));
+        _colBackground = ColorToArgb(ThemeColor("Hex_Background", Color.FromRgb(30, 30, 30)));
+        _colOffset = ColorToArgb(ThemeColor("HexOffset", Color.FromRgb(160, 160, 160)));
+        _colByteActive = ColorToArgb(ThemeColor("Hex_ByteActive", Color.FromRgb(173, 216, 230)));
+        _colByteNull = ColorToArgb(ThemeColor("Hex_ByteNull", Color.FromRgb(80, 80, 80)));
+        _colByteSelected = ColorToArgb(ThemeColor("Hex_ByteSelected", Color.FromRgb(255, 255, 0)));
+        _colAsciiPrintable = ColorToArgb(ThemeColor("Hex_AsciiPrintable", Color.FromRgb(144, 238, 144)));
         _colAsciiNonPrint = ColorToArgb(ThemeColor("Hex_AsciiNonPrintable", Color.FromRgb(100, 100, 100)));
-        _colColumnHeader  = ColorToArgb(ThemeColor("ForegroundSecondary",   Color.FromRgb(100, 100, 100)));
-        _colAsciiExt      = ColorToArgb(Color.FromRgb( 60, 120,  60));
-        _colSelectionBg   = ColorToArgb(Color.FromArgb(100,  51, 153, 255));
-        _colModifiedBg    = ColorToArgb(Color.FromArgb( 80, 255,   0, 128));
-        _colYaraHit       = ColorToArgb(Color.FromArgb(100, 255, 255,   0)); 
+        _colColumnHeader = ColorToArgb(ThemeColor("ForegroundSecondary", Color.FromRgb(100, 100, 100)));
+        _colAsciiExt = ColorToArgb(Color.FromRgb(60, 120, 60));
+        _colSelectionBg = ColorToArgb(Color.FromArgb(100, 51, 153, 255));
+        _colModifiedBg = ColorToArgb(Color.FromArgb(80, 255, 0, 128));
+        _colYaraHit = ColorToArgb(Color.FromArgb(100, 255, 255, 0));
 
         RebuildGlyphCache();
         RequestFullRedraw();
@@ -298,7 +298,7 @@ public class VirtualizedHexView : FrameworkElement
     {
         if (w <= 0 || h <= 0) return;
         if (w == _bitmapWidth && h == _bitmapHeight) return;
-        _bitmapWidth  = w;
+        _bitmapWidth = w;
         _bitmapHeight = h;
         _bitmap = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgra32, null);
         _backBuffer = new uint[w * h];
@@ -359,23 +359,23 @@ public class VirtualizedHexView : FrameworkElement
         HashSet<long> snap;
         lock (_modLock)
             snap = new HashSet<long>(_modifiedOffsets);
-        _modifiedSnapshot = snap;  
+        _modifiedSnapshot = snap;
     }
     private void RenderFullFrame()
     {
         FillBackground(_backBuffer, _bitmapWidth, _bitmapHeight, _colBackground);
-        int offsetColPx     = (int)(120 * _pixelsPerDip);
-        int hexColPx        = (int)(_bytesPerLine * 3 * _charWidth * _pixelsPerDip);
+        int offsetColPx = (int)(120 * _pixelsPerDip);
+        int hexColPx = (int)(_bytesPerLine * 3 * _charWidth * _pixelsPerDip);
         int asciiColStartPx = offsetColPx + hexColPx + (int)(20 * _pixelsPerDip);
 
-        DrawStringToBuffer("Offset",   10,               5, _colColumnHeader);
+        DrawStringToBuffer("Offset", 10, 5, _colColumnHeader);
         DrawStringToBuffer("Hex View", offsetColPx + 10, 5, _colColumnHeader);
-        DrawStringToBuffer("ASCII",    asciiColStartPx,  5, _colColumnHeader);
+        DrawStringToBuffer("ASCII", asciiColStartPx, 5, _colColumnHeader);
 
-        long totalLines   = (_fileLength + _bytesPerLine - 1) / _bytesPerLine;
-        int  visibleLines = (int)(ActualHeight / _lineHeight) + 2;
-        long firstLine    = _currentScrollLine;
-        long lastLine     = Math.Min(firstLine + visibleLines, totalLines);
+        long totalLines = (_fileLength + _bytesPerLine - 1) / _bytesPerLine;
+        int visibleLines = (int)(ActualHeight / _lineHeight) + 2;
+        long firstLine = _currentScrollLine;
+        long lastLine = Math.Min(firstLine + visibleLines, totalLines);
         var modSnap = _modifiedSnapshot;
 
         for (long line = firstLine; line < lastLine; line++)
@@ -391,8 +391,8 @@ public class VirtualizedHexView : FrameworkElement
         long offset = lineIdx * _bytesPerLine;
         if (offset >= _fileLength) return;
 
-        int offsetColPx     = (int)(120 * _pixelsPerDip);
-        int hexColPx        = (int)(_bytesPerLine * 3 * _charWidth * _pixelsPerDip);
+        int offsetColPx = (int)(120 * _pixelsPerDip);
+        int hexColPx = (int)(_bytesPerLine * 3 * _charWidth * _pixelsPerDip);
         int asciiColStartPx = offsetColPx + hexColPx + (int)(20 * _pixelsPerDip);
         int yPx = LineToPixelY(lineIdx);
         FillRect(_backBuffer, _bitmapWidth, 0, yPx, _bitmapWidth, CellH, _colBackground);
@@ -431,17 +431,17 @@ public class VirtualizedHexView : FrameworkElement
             finally { _accessorLock.ExitReadLock(); }
         }
 
-        bool hasSelection  = HasSelection;
-        long selMin        = hasSelection ? SelectionMin : -1;
-        long selMax        = hasSelection ? SelectionMax : -1;
-        int  hexCellStepPx = (int)Math.Round(3 * _charWidth * _pixelsPerDip);
-        int  hexCellWidthPx= (int)Math.Round(_charWidth * 2.0 * _pixelsPerDip);
+        bool hasSelection = HasSelection;
+        long selMin = hasSelection ? SelectionMin : -1;
+        long selMax = hasSelection ? SelectionMax : -1;
+        int hexCellStepPx = (int)Math.Round(3 * _charWidth * _pixelsPerDip);
+        int hexCellWidthPx = (int)Math.Round(_charWidth * 2.0 * _pixelsPerDip);
 
         for (int i = 0; i < bytesToDraw; i++)
         {
             long byteOffset = offset + i;
-            byte value      = _lineBuffer[i];
-            int  xPx        = offsetColPx + 10 + i * hexCellStepPx;
+            byte value = _lineBuffer[i];
+            int xPx = offsetColPx + 10 + i * hexCellStepPx;
 
             if (hasSelection && byteOffset >= selMin && byteOffset <= selMax)
                 FillRect(_backBuffer, _bitmapWidth, xPx, yPx,
@@ -456,11 +456,11 @@ public class VirtualizedHexView : FrameworkElement
                     hexCellWidthPx, CellH - 2, _colYaraHit);
 
             uint hexColor = (byteOffset == _selectedOffset) ? _colByteSelected
-                          : (value == 0x00)                 ? _colByteNull
+                          : (value == 0x00) ? _colByteNull
                                                             : _colByteActive;
             char hi = HexChar(value >> 4);
             char lo = HexChar(value & 0xF);
-            BlitGlyph(hi, xPx,         yPx, hexColor);
+            BlitGlyph(hi, xPx, yPx, hexColor);
             BlitGlyph(lo, xPx + CellW, yPx, hexColor);
 
             if (byteOffset == _selectedOffset)
@@ -470,9 +470,9 @@ public class VirtualizedHexView : FrameworkElement
 
         for (int i = 0; i < bytesToDraw; i++)
         {
-            long byteOffset  = offset + i;
-            byte value       = _lineBuffer[i];
-            int  xPx         = asciiColStartPx + i * CellW;
+            long byteOffset = offset + i;
+            byte value = _lineBuffer[i];
+            int xPx = asciiColStartPx + i * CellW;
 
             if (hasSelection && byteOffset >= selMin && byteOffset <= selMax)
                 FillRect(_backBuffer, _bitmapWidth, xPx, yPx, CellW, CellH - 2, _colSelectionBg);
@@ -487,12 +487,12 @@ public class VirtualizedHexView : FrameworkElement
             {
                 int rampIdx = value * (_videoRamp.Length - 1) / 255;
                 displayChar = _videoRamp[rampIdx];
-                asciiColor  = _colAsciiPrintable;
+                asciiColor = _colAsciiPrintable;
             }
             else
             {
                 displayChar = _asciiLookupTable[value];
-                asciiColor  = (value >= 32 && value <= 126) ? _colAsciiPrintable
+                asciiColor = (value >= 32 && value <= 126) ? _colAsciiPrintable
                             : (value > 127 && displayChar != '.') ? _colAsciiExt
                             : _colAsciiNonPrint;
             }
@@ -506,13 +506,13 @@ public class VirtualizedHexView : FrameworkElement
         if (_glyphCache == null) return;
         var glyph = _glyphCache.Get(c, colorArgb);
 
-        int cw    = _glyphCache.CellW;
-        int ch    = _glyphCache.CellH;
+        int cw = _glyphCache.CellW;
+        int ch = _glyphCache.CellH;
         int srcX0 = 0, srcY0 = 0;
         int drawW = cw, drawH = ch;
         if (dstX < 0) { srcX0 -= dstX; drawW += dstX; dstX = 0; }
         if (dstY < 0) { srcY0 -= dstY; drawH += dstY; dstY = 0; }
-        if (dstX + drawW > _bitmapWidth)  drawW = _bitmapWidth  - dstX;
+        if (dstX + drawW > _bitmapWidth) drawW = _bitmapWidth - dstX;
         if (dstY + drawH > _bitmapHeight) drawH = _bitmapHeight - dstY;
         if (drawW <= 0 || drawH <= 0) return;
 
@@ -536,8 +536,8 @@ public class VirtualizedHexView : FrameworkElement
 
                 byte outR = (byte)(((srcPixel >> 16) & 0xFF)
                             + (((dstPixel >> 16) & 0xFF) * invA + 127 >> 8));
-                byte outG = (byte)(((srcPixel >>  8) & 0xFF)
-                            + (((dstPixel >>  8) & 0xFF) * invA + 127 >> 8));
+                byte outG = (byte)(((srcPixel >> 8) & 0xFF)
+                            + (((dstPixel >> 8) & 0xFF) * invA + 127 >> 8));
                 byte outB = (byte)((srcPixel & 0xFF)
                             + ((dstPixel & 0xFF) * invA + 127 >> 8));
 
@@ -561,7 +561,7 @@ public class VirtualizedHexView : FrameworkElement
         if (srcA == 0) return;
 
         byte srcR = (byte)(colorArgb >> 16);
-        byte srcG = (byte)(colorArgb >>  8);
+        byte srcG = (byte)(colorArgb >> 8);
         byte srcB = (byte)(colorArgb);
 
         if (srcA == 255)
@@ -585,8 +585,8 @@ public class VirtualizedHexView : FrameworkElement
                     buf[rowStart + col] =
                         0xFF000000u |
                         (uint)((srcR * srcA + (byte)(dst >> 16) * invA + 127) >> 8) << 16 |
-                        (uint)((srcG * srcA + (byte)(dst >>  8) * invA + 127) >> 8) <<  8 |
-                        (uint)((srcB * srcA + (byte)(dst)       * invA + 127) >> 8);
+                        (uint)((srcG * srcA + (byte)(dst >> 8) * invA + 127) >> 8) << 8 |
+                        (uint)((srcB * srcA + (byte)(dst) * invA + 127) >> 8);
                 }
             }
         }
@@ -605,13 +605,13 @@ public class VirtualizedHexView : FrameworkElement
         uint solid = color | 0xFF000000u;
         for (int i = x; i < x + w; i++)
         {
-            if (y >= 0 && y * stride + i < buf.Length)       buf[y * stride + i] = solid;
-            if ((y + h - 1) * stride + i < buf.Length)       buf[(y + h - 1) * stride + i] = solid;
+            if (y >= 0 && y * stride + i < buf.Length) buf[y * stride + i] = solid;
+            if ((y + h - 1) * stride + i < buf.Length) buf[(y + h - 1) * stride + i] = solid;
         }
         for (int j = y; j < y + h; j++)
         {
-            if (j * stride + x < buf.Length)                 buf[j * stride + x] = solid;
-            if (j * stride + x + w - 1 < buf.Length)         buf[j * stride + x + w - 1] = solid;
+            if (j * stride + x < buf.Length) buf[j * stride + x] = solid;
+            if (j * stride + x + w - 1 < buf.Length) buf[j * stride + x + w - 1] = solid;
         }
     }
     private unsafe void FlushBitmapFull()
@@ -682,7 +682,7 @@ public class VirtualizedHexView : FrameworkElement
         _accessorLock.EnterWriteLock();
         try
         {
-            if (_accessor == null) return;  
+            if (_accessor == null) return;
             _accessor.Write(offset, value);
         }
         finally { _accessorLock.ExitWriteLock(); }
@@ -693,7 +693,7 @@ public class VirtualizedHexView : FrameworkElement
         Dispatcher.BeginInvoke(() => MarkLineDirty(offset));
     }
 
-   public void LoadFile(string filePath)
+    public void LoadFile(string filePath)
     {
         _accessorLock.EnterWriteLock();
         try
@@ -720,7 +720,7 @@ public class VirtualizedHexView : FrameworkElement
     public void Dispose()
     {
         _accessorLock.EnterWriteLock();
-        try   { _accessor?.Dispose(); _mmf?.Dispose(); }
+        try { _accessor?.Dispose(); _mmf?.Dispose(); }
         finally { _accessorLock.ExitWriteLock(); }
         _accessorLock.Dispose();
     }
@@ -729,7 +729,7 @@ public class VirtualizedHexView : FrameworkElement
     public MemoryMappedFile? GetMemoryMappedFile()
     {
         _accessorLock.EnterReadLock();
-        try   { return _mmf; }
+        try { return _mmf; }
         finally { _accessorLock.ExitReadLock(); }
     }
 
@@ -737,7 +737,7 @@ public class VirtualizedHexView : FrameworkElement
     {
         if (offset < 0 || offset >= _fileLength) return 0;
         _accessorLock.EnterReadLock();
-        try   { return _accessor?.ReadByte(offset) ?? 0; }
+        try { return _accessor?.ReadByte(offset) ?? 0; }
         finally { _accessorLock.ExitReadLock(); }
     }
 
@@ -747,7 +747,7 @@ public class VirtualizedHexView : FrameworkElement
         int count = (int)Math.Min(buffer.Length, _fileLength - offset);
         if (count <= 0) return;
         _accessorLock.EnterReadLock();
-        try   { _accessor?.ReadArray(offset, buffer, 0, count); }
+        try { _accessor?.ReadArray(offset, buffer, 0, count); }
         finally { _accessorLock.ExitReadLock(); }
     }
 
@@ -760,7 +760,7 @@ public class VirtualizedHexView : FrameworkElement
         try
         {
             _accessorLock.EnterReadLock();
-            try   { _accessor?.ReadArray(offset, tmp, 0, count); }
+            try { _accessor?.ReadArray(offset, tmp, 0, count); }
             finally { _accessorLock.ExitReadLock(); }
             tmp.AsSpan(0, count).CopyTo(buffer);
         }
@@ -783,11 +783,11 @@ public class VirtualizedHexView : FrameworkElement
     }
     public void JumpToNextChange()
     {
-        var snap = _modifiedSnapshot;  
+        var snap = _modifiedSnapshot;
         if (snap.Count == 0) return;
         long startFrom = _selectedOffset;
-        long? next     = null;
-        long bestDist  = long.MaxValue;
+        long? next = null;
+        long bestDist = long.MaxValue;
         foreach (long o in snap)
             if (o > startFrom && o - startFrom < bestDist) { bestDist = o - startFrom; next = o; }
         if (next == null)
@@ -798,7 +798,7 @@ public class VirtualizedHexView : FrameworkElement
         }
         if (next.HasValue)
         {
-            _selectedOffset    = next.Value;
+            _selectedOffset = next.Value;
             _currentScrollLine = Math.Max(0, _selectedOffset / _bytesPerLine - 2);
             OffsetSelected?.Invoke(this, _selectedOffset);
             RequestFullRedraw();
@@ -824,8 +824,8 @@ public class VirtualizedHexView : FrameworkElement
         var snap = _yaraSnapshot;
         if (snap.Count == 0) return false;
         long startFrom = _selectedOffset;
-        long? next     = null;
-        long bestDist  = long.MaxValue;
+        long? next = null;
+        long bestDist = long.MaxValue;
         foreach (long o in snap)
             if (o > startFrom && o - startFrom < bestDist) { bestDist = o - startFrom; next = o; }
         if (next == null)
@@ -836,7 +836,7 @@ public class VirtualizedHexView : FrameworkElement
         }
         if (next.HasValue)
         {
-            _selectedOffset    = next.Value;
+            _selectedOffset = next.Value;
             _currentScrollLine = Math.Max(0, _selectedOffset / _bytesPerLine - 2);
             OffsetSelected?.Invoke(this, _selectedOffset);
             RequestFullRedraw();
@@ -857,9 +857,9 @@ public class VirtualizedHexView : FrameworkElement
             string decoded = enc.GetString(all);
             for (int i = 0; i < 256; i++)
             {
-                if      (i < 32 || i == 127) _asciiLookupTable[i] = '.';
-                else if (i < 127)            _asciiLookupTable[i] = (char)i;
-                else { char c = decoded[i];  _asciiLookupTable[i] = char.IsControl(c) ? '.' : c; }
+                if (i < 32 || i == 127) _asciiLookupTable[i] = '.';
+                else if (i < 127) _asciiLookupTable[i] = (char)i;
+                else { char c = decoded[i]; _asciiLookupTable[i] = char.IsControl(c) ? '.' : c; }
             }
         }
         catch { for (int i = 0; i < 256; i++) _asciiLookupTable[i] = i >= 32 && i <= 126 ? (char)i : '.'; }
@@ -886,7 +886,7 @@ public class VirtualizedHexView : FrameworkElement
     {
         base.OnMouseWheel(e); e.Handled = true;
         int mult = Keyboard.Modifiers.HasFlag(ModifierKeys.Control) ? 100
-                 : Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)   ? 1000 : 1;
+                 : Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? 1000 : 1;
         long maxLines = _fileLength / _bytesPerLine;
         _currentScrollLine = Math.Clamp(_currentScrollLine + (e.Delta > 0 ? -3 : 3) * mult, 0, maxLines);
         RequestFullRedraw();
@@ -896,9 +896,9 @@ public class VirtualizedHexView : FrameworkElement
     {
         base.OnKeyDown(e);
         var action = HotkeyManager.GetAction(Keyboard.Modifiers, e.Key);
-        if (action == EUVAAction.CopyHex)          { CopyAsHex();        e.Handled = true; }
-        else if (action == EUVAAction.CopyCArray)   { CopyAsCArray();    e.Handled = true; }
-        else if (action == EUVAAction.CopyPlainText){ CopyAsPlainText(); e.Handled = true; }
+        if (action == EUVAAction.CopyHex) { CopyAsHex(); e.Handled = true; }
+        else if (action == EUVAAction.CopyCArray) { CopyAsCArray(); e.Handled = true; }
+        else if (action == EUVAAction.CopyPlainText) { CopyAsPlainText(); e.Handled = true; }
 
         if (e.Key == Key.F3 && Keyboard.Modifiers == ModifierKeys.Shift)
         {
@@ -913,8 +913,8 @@ public class VirtualizedHexView : FrameworkElement
 
     private long HitTest(Point pos)
     {
-        double offsetColW    = 120;
-        double hexColW       = _bytesPerLine * 3 * _charWidth;
+        double offsetColW = 120;
+        double hexColW = _bytesPerLine * 3 * _charWidth;
         double asciiColStart = offsetColW + hexColW + 20;
         long lineIndex = (long)((pos.Y - 25) / _lineHeight) + _currentScrollLine;
         if (lineIndex < 0) return -1;

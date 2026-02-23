@@ -15,14 +15,14 @@ public class DetectorManager
 
     public IReadOnlyList<IDetector> Detectors => _detectors;
 
-    
+
     public void RegisterDetector(IDetector detector)
     {
         _detectors.Add(detector);
         _detectors.Sort((a, b) => a.Priority.CompareTo(b.Priority));
     }
 
-   
+
     public void LoadFromAssembly(Assembly assembly)
     {
         var detectorTypes = assembly.GetTypes()
@@ -44,7 +44,7 @@ public class DetectorManager
         }
     }
 
-    
+
     public void LoadFromDirectory(string pluginDirectory)
     {
         if (!Directory.Exists(pluginDirectory))
@@ -66,7 +66,7 @@ public class DetectorManager
         }
     }
 
-    public async Task<List<DetectionResult>> AnalyzeAsync(ReadOnlyMemory<byte> fileData, 
+    public async Task<List<DetectionResult>> AnalyzeAsync(ReadOnlyMemory<byte> fileData,
         BinaryStructure structure, IProgress<string>? progress = null)
     {
         var results = new List<DetectionResult>();
@@ -79,7 +79,7 @@ public class DetectorManager
             {
                 progress?.Report($"Running {detector.Name}...");
                 var result = await detector.DetectAsync(fileData, structure);
-                
+
                 if (result != null && result.Confidence > 0.0)
                 {
                     results.Add(result);
@@ -94,7 +94,7 @@ public class DetectorManager
         return results.OrderByDescending(r => r.Confidence).ToList();
     }
 
-    
+
     public DetectionResult? GetBestMatch(List<DetectionResult> results)
     {
         return results.OrderByDescending(r => r.Confidence).FirstOrDefault();

@@ -3,28 +3,18 @@ Sidebar               =  25,  25,  25, 255
 Toolbar               =  35,  35,  35, 255
 Border                =  60,  60,  60, 255
 SeparatorLine         =  50,  50,  50, 255
-
-
 ForegroundPrimary     = 220, 220, 220, 255
 ForegroundSecondary   = 100, 100, 100, 255   
 ForegroundDisabled    =  80,  80,  80, 255
+
 Hex_Background        =  30,  30,  30, 255    
 HexOffset             = 160, 160, 160, 255    
 Hex_OffsetForeground  = 160, 160, 160, 255
-
-
 Hex_ByteActive        = 173, 216, 230, 255    
-
-
 Hex_ByteNull          =  80,  80,  80, 255   
-
-
 Hex_ByteSelected      = 255, 255,   0, 255    
-
-
 Hex_AsciiPrintable    = 144, 238, 144, 255   
 Hex_AsciiNonPrintable = 100, 100, 100, 255    
-
 Hex_ByteHighlight     = 173, 216, 230,  40
 
 ConsoleBackground     =  20,  20,  20, 255

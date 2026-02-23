@@ -7,7 +7,7 @@ namespace EUVA.Core.Parsers;
 
 public class SignatureScanner
 {
-    
+
     public static List<SignatureMatch> FindPattern(ReadOnlySpan<byte> data, string pattern, string signatureName)
     {
         var matches = new List<SignatureMatch>();
@@ -48,8 +48,8 @@ public class SignatureScanner
 
         return -1;
     }
-    
-    public static List<SignatureMatch> FindInRange(ReadOnlySpan<byte> data, long offset, long size, 
+
+    public static List<SignatureMatch> FindInRange(ReadOnlySpan<byte> data, long offset, long size,
         string pattern, string signatureName)
     {
         if (offset < 0 || offset + size > data.Length)
@@ -58,7 +58,7 @@ public class SignatureScanner
         var slice = data.Slice((int)offset, (int)size);
         var matches = FindPattern(slice, pattern, signatureName);
 
-        
+
         foreach (var match in matches)
         {
             match.GetType().GetProperty(nameof(SignatureMatch.Offset))!
@@ -118,7 +118,7 @@ public class SignatureScanner
             return 0.0;
 
         Span<int> frequencies = stackalloc int[256];
-        
+
         foreach (byte b in data)
             frequencies[b]++;
 
@@ -138,7 +138,7 @@ public class SignatureScanner
     }
 
 
-    public static Dictionary<string, double> AnalyzeSectionEntropy(ReadOnlySpan<byte> data, 
+    public static Dictionary<string, double> AnalyzeSectionEntropy(ReadOnlySpan<byte> data,
         IEnumerable<DataRegion> regions)
     {
         var results = new Dictionary<string, double>();

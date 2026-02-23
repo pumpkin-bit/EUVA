@@ -41,20 +41,20 @@ public class PEMapper : IBinaryMapper
         try
         {
             var peFile = PEFile.FromBytes(_fileData);
-            
-            
+
+
             ParseDosHeader(root, peFile);
-            
-            
+
+
             ParseNtHeaders(root, peFile);
-            
-            
+
+
             ParseSections(root, peFile);
-            
-            
+
+
             ParseDataDirectories(root, peFile);
 
-            
+
             foreach (var provider in _providers)
             {
                 _regions.AddRange(provider.ProvideRegions(root, data));
@@ -112,7 +112,7 @@ public class PEMapper : IBinaryMapper
         var fileHeader = peFile.FileHeader;
         var optionalHeader = peFile.OptionalHeader;
 
-        
+
         var fileHeaderNode = new BinaryStructure
         {
             Name = "File Header",
@@ -123,14 +123,14 @@ public class PEMapper : IBinaryMapper
 
         AddField(fileHeaderNode, "Machine", 0, 2, fileHeader.Machine, fileHeader.Machine.ToString());
         AddField(fileHeaderNode, "NumberOfSections", 2, 2, fileHeader.NumberOfSections);
-        AddField(fileHeaderNode, "TimeDateStamp", 4, 4, fileHeader.TimeDateStamp, 
+        AddField(fileHeaderNode, "TimeDateStamp", 4, 4, fileHeader.TimeDateStamp,
             DateTimeOffset.FromUnixTimeSeconds(fileHeader.TimeDateStamp).ToString());
-        AddField(fileHeaderNode, "Characteristics", 16, 2, fileHeader.Characteristics, 
+        AddField(fileHeaderNode, "Characteristics", 16, 2, fileHeader.Characteristics,
             fileHeader.Characteristics.ToString());
 
         ntNode.AddChild(fileHeaderNode);
 
-        
+
         var optHeaderNode = new BinaryStructure
         {
             Name = "Optional Header",
@@ -142,7 +142,7 @@ public class PEMapper : IBinaryMapper
         AddField(optHeaderNode, "Magic", 0, 2, optionalHeader.Magic, optionalHeader.Magic.ToString());
         AddField(optHeaderNode, "AddressOfEntryPoint", 16, 4, optionalHeader.AddressOfEntryPoint,
             $"0x{optionalHeader.AddressOfEntryPoint:X8}");
-        
+
         var imageBaseVal = GetNestedMemberValue(optionalHeader, "ImageBase");
         int imageBaseSize = (imageBaseVal is ulong) ? 8 : 4;
         var imageBaseNumeric = Convert.ToUInt64(imageBaseVal ?? 0UL);
@@ -159,7 +159,7 @@ public class PEMapper : IBinaryMapper
 
         ntNode.AddChild(optHeaderNode);
 
-        CreateRegion("NT Headers", (long)ntNode.Offset!, (long)ntNode.Size!, 
+        CreateRegion("NT Headers", (long)ntNode.Offset!, (long)ntNode.Size!,
             RegionType.Header, Colors.DarkBlue, ntNode);
         root.AddChild(ntNode);
     }
@@ -206,7 +206,7 @@ public class PEMapper : IBinaryMapper
                        section.IsContentInitializedData ? Colors.LightBlue :
                        section.IsContentUninitializedData ? Colors.LightGray : Colors.LightYellow;
 
-            CreateRegion($"Section: {sectionNode.Name}", sectionNode.Offset ?? 0, (long)section.GetPhysicalSize(), 
+            CreateRegion($"Section: {sectionNode.Name}", sectionNode.Offset ?? 0, (long)section.GetPhysicalSize(),
                 RegionType.Code, color, sectionNode);
 
             sectionsNode.AddChild(sectionNode);
@@ -228,7 +228,7 @@ public class PEMapper : IBinaryMapper
         var dirs = optHeader.DataDirectories;
         if (dirs != null)
         {
-            
+
             if (dirs.Count > 1)
             {
                 var importDir = dirs[1];
@@ -269,7 +269,7 @@ public class PEMapper : IBinaryMapper
         root.AddChild(dirNode);
     }
 
-    private void AddField(BinaryStructure parent, string name, long relativeOffset, int size, 
+    private void AddField(BinaryStructure parent, string name, long relativeOffset, int size,
         object value, string? displayValue = null)
     {
         var field = new BinaryStructure
@@ -285,7 +285,7 @@ public class PEMapper : IBinaryMapper
         parent.AddChild(field);
     }
 
-    private void CreateRegion(string name, long offset, long size, RegionType type, 
+    private void CreateRegion(string name, long offset, long size, RegionType type,
         Color color, BinaryStructure? linkedStructure = null)
     {
         _regions.Add(new DataRegion

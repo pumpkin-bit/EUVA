@@ -35,7 +35,7 @@ public class ThemidaDetector : IDetector
             var signatures = new List<SignatureMatch>();
             double confidence = 0.0;
 
-        
+
             foreach (var pattern in THEMIDA_SIGNATURES)
             {
                 var matches = SignatureScanner.FindPattern(data, pattern, "Themida Signature");
@@ -45,33 +45,33 @@ public class ThemidaDetector : IDetector
             if (signatures.Count > 0)
                 confidence += 0.3;
 
-          
+
             var sections = structure.FindByPath("Sections");
             if (sections != null)
             {
                 var sectionNames = sections.Children.Select(c => c.Name.ToUpperInvariant()).ToList();
-                
+
                 if (sectionNames.Any(s => s.Contains(".THEMIDA") || s.Contains(".WINLICE")))
                     confidence += 0.5;
 
-            
+
                 if (sections.Children.Count > 8)
                     confidence += 0.1;
             }
 
-           
+
             var imports = structure.FindByPath("Data Directories", "Import Directory");
             if (imports != null)
             {
-             
+
                 var importRva = imports.Children.FirstOrDefault(c => c.Name == "RVA")?.Value;
                 if (importRva is uint rva && (rva == 0 || rva > 0x100000))
                     confidence += 0.2;
             }
 
-         
+
             var entropy = SignatureScanner.CalculateEntropy(data);
-            if (entropy > 7.5) 
+            if (entropy > 7.5)
                 confidence += 0.3;
 
             if (confidence == 0.0)

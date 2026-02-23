@@ -5,6 +5,6 @@ namespace EUVA.Core.Interfaces;
 
 public interface IRegionProvider
 {
-   
+
     IEnumerable<DataRegion> ProvideRegions(BinaryStructure structure, ReadOnlySpan<byte> data);
 }

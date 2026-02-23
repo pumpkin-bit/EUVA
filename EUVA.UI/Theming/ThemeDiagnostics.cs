@@ -8,7 +8,7 @@ namespace EUVA.UI.Theming;
 
 internal static class ThemeDiagnostics
 {
-   
+
 
     public static void Warning(string message) =>
         Write("WARNING", message, ConsoleColor.Yellow);
@@ -22,27 +22,27 @@ internal static class ThemeDiagnostics
     public static void Success(string message) =>
         Write("SUCCESS", message, ConsoleColor.Green);
 
-    
+
     public static void ThemeFileNotFound(string path) =>
         Warning($"Theme file not found: {path}. Using internal fallback.");
 
-  
+
     public static void BeginParse(string filePath) =>
         Info($"Parsing '{System.IO.Path.GetFileName(filePath)}'...");
 
-    
+
     public static void ErrorValueOutOfRange(int lineIndex, string val) =>
         Error($"Line {lineIndex}: Value '{val}' out of range [0-255]. Skipping.");
 
- 
+
     public static void ErrorInvalidSyntax(int lineIndex, string rawLine) =>
         Error($"Line {lineIndex}: Invalid syntax '{rawLine}'. Skipping.");
 
-   
+
     public static void ThemeApplied(int loaded, int total) =>
         Success($"Theme applied. {loaded}/{total} tokens loaded.");
 
-  
+
     private static void Write(string tag, string message, ConsoleColor color)
     {
         var timestamp = DateTime.Now.ToString("HH:mm:ss");

@@ -25,7 +25,7 @@ public sealed class YaraDetectionEntry
 
     public YaraDetectionEntry(in YaraMatch m)
     {
-        Name   = m.Label;
+        Name = m.Label;
         Offset = m.Offset;
 
         var sb = new System.Text.StringBuilder(72);
@@ -44,8 +44,8 @@ public partial class MainWindow
 {
     private readonly YaraEngine _yaraEngine = new();
     private Channel<YaraMatch>? _yaraChannel;
-    private DispatcherTimer?    _yaraUiTimer;
-    private string?             _yaraRulesPath;
+    private DispatcherTimer? _yaraUiTimer;
+    private string? _yaraRulesPath;
     private readonly List<YaraDetectionEntry> _yaraBatch = new(200);
     public void InitializeYara()
     {
@@ -54,14 +54,14 @@ public partial class MainWindow
             Interval = TimeSpan.FromMilliseconds(50)
         };
         _yaraUiTimer.Tick += DrainChannelToDetectionList;
-     
+
     }
     private async void BtnLoadYaraRules_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new OpenFileDialog
         {
             Filter = "YARA rules (*.yar;*.yara)|*.yar;*.yara|All files (*.*)|*.*",
-            Title  = "Select YARA rule file"
+            Title = "Select YARA rule file"
         };
         if (dlg.ShowDialog() != true) return;
 
@@ -74,7 +74,7 @@ public partial class MainWindow
 
         if (ok)
         {
-            _yaraRulesPath          = path;
+            _yaraRulesPath = path;
             TxtDetectionStatus.Text = $"Rules ready: {Path.GetFileName(path)}  —  click Run YARAx";
         }
         else
@@ -100,9 +100,9 @@ public partial class MainWindow
         DetectionList.ItemsSource = null;
         DetectionList.Items.Clear();
         HexView.SetYaraOffsets(Array.Empty<long>());
-        TxtYaraMatchCount.Text  = "";
+        TxtYaraMatchCount.Text = "";
         TxtDetectionStatus.Text = "YARA scan running …";
-        Mouse.OverrideCursor    = Cursors.Wait;
+        Mouse.OverrideCursor = Cursors.Wait;
 
         SwitchToDetectionsTab();
 
@@ -110,7 +110,7 @@ public partial class MainWindow
         //  using queues and buffer overflow protection
         _yaraChannel = Channel.CreateBounded<YaraMatch>(new BoundedChannelOptions(65536)
         {
-            FullMode     = BoundedChannelFullMode.Wait,
+            FullMode = BoundedChannelFullMode.Wait,
             SingleWriter = true,
             SingleReader = false
         });
@@ -142,13 +142,13 @@ public partial class MainWindow
                 mmf, fileLength, _yaraChannel.Writer, scanProgress);
 
             sw.Stop();
-            int count   = DetectionList.Items.Count;
+            int count = DetectionList.Items.Count;
             string done = count == 0
                 ? "YARA scan complete no matches"
                 : $"YARA scan complete {count} match{(count == 1 ? "" : "es")} in {sw.Elapsed.TotalSeconds:F2}s";
 
             TxtDetectionStatus.Text = done;
-            TxtYaraMatchCount.Text  = count > 0 ? $"{count} matches" : "";
+            TxtYaraMatchCount.Text = count > 0 ? $"{count} matches" : "";
             LogMessage($"[YARA] {done}");
         }
         catch (OperationCanceledException)
@@ -179,7 +179,7 @@ public partial class MainWindow
                     offsets.Add(entry.Offset);
             HexView.SetYaraOffsets(offsets);
 
-            _yaraChannel     = null;
+            _yaraChannel = null;
             Mouse.OverrideCursor = null;
         }
     }
@@ -224,7 +224,7 @@ public partial class MainWindow
 
     public void OnFileLoaded()
     {
-        TxtYaraMatchCount.Text  = "";
+        TxtYaraMatchCount.Text = "";
         TxtDetectionStatus.Text = _yaraRulesPath != null
             ? $"New file loaded click Run YARAx  ({Path.GetFileName(_yaraRulesPath)})"
             : "Run Detectors or load YARA rules to begin";

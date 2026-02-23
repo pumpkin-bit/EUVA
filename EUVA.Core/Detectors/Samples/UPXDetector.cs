@@ -36,7 +36,7 @@ public class UPXDetector : IDetector
             var signatures = new List<SignatureMatch>();
             double confidence = 0.0;
 
-           
+
             foreach (var pattern in UPX_SIGNATURES)
             {
                 var matches = SignatureScanner.FindPattern(data, pattern, $"UPX Signature");
@@ -46,12 +46,12 @@ public class UPXDetector : IDetector
             if (signatures.Count > 0)
                 confidence += 0.4;
 
-          
+
             var sections = structure.FindByPath("Sections");
             if (sections != null)
             {
                 var sectionNames = sections.Children.Select(c => c.Name.ToUpperInvariant()).ToList();
-                
+
                 if (sectionNames.Contains("UPX0") || sectionNames.Contains("UPX1"))
                     confidence += 0.4;
 
@@ -59,15 +59,15 @@ public class UPXDetector : IDetector
                     confidence += 0.3;
             }
 
-           
+
             var entropy = SignatureScanner.CalculateEntropy(data);
-            if (entropy > 7.0) 
+            if (entropy > 7.0)
                 confidence += 0.2;
 
             if (confidence == 0.0)
                 return null;
 
-           
+
             string? version = null;
             if (signatures.Any(s => s.Pattern.Contains("55 50 58 21")))
                 version = "3.x+";

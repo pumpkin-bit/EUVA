@@ -23,6 +23,7 @@ using System.Linq;
 using System.Diagnostics;
 
 namespace EUVA.UI;
+
 public static class HotkeyManager
 {
     private static Dictionary<(ModifierKeys, Key), EUVAAction> _bindings = new();
@@ -33,14 +34,14 @@ public static class HotkeyManager
     public static void LoadDefaults()
     {
         _bindings.Clear();
-        _bindings[(ModifierKeys.Alt,                          Key.D1)] = EUVAAction.NavInspector;
-        _bindings[(ModifierKeys.Alt,                          Key.D2)] = EUVAAction.NavSearch;
-        _bindings[(ModifierKeys.Alt,                          Key.D3)] = EUVAAction.NavDetections;
-        _bindings[(ModifierKeys.Alt,                          Key.D4)] = EUVAAction.NavProperties;
-        _bindings[(ModifierKeys.Control,                      Key.Z)]  = EUVAAction.Undo;
-        _bindings[(ModifierKeys.Control | ModifierKeys.Shift, Key.Z)]  = EUVAAction.FullUndo;
-        _bindings[(ModifierKeys.Control,                      Key.C)]  = EUVAAction.CopyHex;
-        _bindings[(ModifierKeys.Control | ModifierKeys.Shift, Key.C)]  = EUVAAction.CopyCArray;
+        _bindings[(ModifierKeys.Alt, Key.D1)] = EUVAAction.NavInspector;
+        _bindings[(ModifierKeys.Alt, Key.D2)] = EUVAAction.NavSearch;
+        _bindings[(ModifierKeys.Alt, Key.D3)] = EUVAAction.NavDetections;
+        _bindings[(ModifierKeys.Alt, Key.D4)] = EUVAAction.NavProperties;
+        _bindings[(ModifierKeys.Control, Key.Z)] = EUVAAction.Undo;
+        _bindings[(ModifierKeys.Control | ModifierKeys.Shift, Key.Z)] = EUVAAction.FullUndo;
+        _bindings[(ModifierKeys.Control, Key.C)] = EUVAAction.CopyHex;
+        _bindings[(ModifierKeys.Control | ModifierKeys.Shift, Key.C)] = EUVAAction.CopyCArray;
         MainWindow.Instance?.Log("[System] Default hotkeys loaded.", Brushes.Gray);
     }
 
@@ -59,14 +60,14 @@ public static class HotkeyManager
                     throw new Exception($"Unknown action: '{parts[0].Trim()}'");
 
                 var keys = parts[1].Split('+');
-                ModifierKeys mods  = ModifierKeys.None;
-                Key          targetKey = Key.None;
+                ModifierKeys mods = ModifierKeys.None;
+                Key targetKey = Key.None;
                 foreach (var k in keys)
                 {
                     string token = k.Trim();
-                    if      (Enum.TryParse(token, true, out ModifierKeys m))  mods      |= m;
-                    else if (Enum.TryParse(token, true, out Key tk))          targetKey  = tk;
-                    else    throw new Exception($"Unknown token: '{token}'");
+                    if (Enum.TryParse(token, true, out ModifierKeys m)) mods |= m;
+                    else if (Enum.TryParse(token, true, out Key tk)) targetKey = tk;
+                    else throw new Exception($"Unknown token: '{token}'");
                 }
                 if (targetKey == Key.None) throw new Exception("Base key not found");
                 _bindings[(mods, targetKey)] = action;
@@ -88,9 +89,9 @@ public readonly record struct InspectorItem(string Name, string Value, string Ra
 
 public class MethodContainer
 {
-    public string              Name   = "";
-    public string              Access = "";
-    public List<string>        Body   = new();
+    public string Name = "";
+    public string Access = "";
+    public List<string> Body = new();
     public Dictionary<string, long> Clinks = new();
 }
 public static class AsmLogic
@@ -135,9 +136,9 @@ public static class AsmLogic
         if (mnemonic == "jmp" && tokens.Length == 2 &&
             long.TryParse(tokens[1], out long target))
         {
-            int rel    = (int)(target - (currentAddr + 5));
+            int rel = (int)(target - (currentAddr + 5));
             var result = new byte[5];
-            result[0]  = 0xE9;
+            result[0] = 0xE9;
             WriteLE32(result, 1, rel);
             return result;
         }
@@ -151,7 +152,7 @@ public static class AsmLogic
             int.TryParse(tokens[2], out int val))
         {
             var result = new byte[5];
-            result[0]  = (byte)(0xB8 + regIdx);
+            result[0] = (byte)(0xB8 + regIdx);
             WriteLE32(result, 1, val);
             return result;
         }
@@ -161,8 +162,8 @@ public static class AsmLogic
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void WriteLE32(byte[] buf, int off, int v)
     {
-        buf[off]     = (byte) v;
-        buf[off + 1] = (byte)(v >>  8);
+        buf[off] = (byte)v;
+        buf[off + 1] = (byte)(v >> 8);
         buf[off + 2] = (byte)(v >> 16);
         buf[off + 3] = (byte)(v >> 24);
     }
@@ -174,7 +175,7 @@ public static class DataParser
         if (data.Length == 0) return (0, 0);
 
         byte b0 = data[0];
-        if ((b0 & 0x80) == 0)                             
+        if ((b0 & 0x80) == 0)
         {
             long v = b0 & 0x7F;
             if (signed && (b0 & 0x40) != 0) v |= -1L << 7;
@@ -183,7 +184,7 @@ public static class DataParser
         if (data.Length >= 2)
         {
             byte b1 = data[1];
-            if ((b1 & 0x80) == 0)                       
+            if ((b1 & 0x80) == 0)
             {
                 long v = (b0 & 0x7FL) | ((b1 & 0x7FL) << 7);
                 if (signed && (b1 & 0x40) != 0) v |= -1L << 14;
@@ -193,9 +194,9 @@ public static class DataParser
         long result = 0; int shift = 0; int pos = 0;
         while (pos < data.Length)
         {
-            byte b  = data[pos++];
+            byte b = data[pos++];
             result |= (long)(b & 0x7F) << shift;
-            shift  += 7;
+            shift += 7;
             if ((b & 0x80) == 0)
             {
                 if (signed && shift < 64 && (b & 0x40) != 0) result |= -(1L << shift);
@@ -227,10 +228,10 @@ public static class InspectorHelper
         long result = 0; int shift = 0; int pos = 0;
         while (pos < data.Length)
         {
-            byte b  = data[pos++];
+            byte b = data[pos++];
             result |= (long)(b & 0x7F) << shift;
             if ((b & 0x80) == 0) break;
-            shift  += 7;
+            shift += 7;
         }
         return (result, pos);
     }
@@ -239,9 +240,9 @@ public static class InspectorHelper
 }
 public partial class MainWindow : Window
 {
-    private PEMapper?         _mapper;
-    private DetectorManager   _detectorManager = new();
-    public static MainWindow  Instance { get; private set; } = null!;
+    private PEMapper? _mapper;
+    private DetectorManager _detectorManager = new();
+    public static MainWindow Instance { get; private set; } = null!;
     private readonly ConcurrentQueue<(string Text, Brush Color)> _logQueue = new();
     private readonly System.Windows.Threading.DispatcherTimer _logFlushTimer;
     private static readonly Regex _whitespaceRegex =
@@ -251,19 +252,19 @@ public partial class MainWindow : Window
 
     private readonly byte[] _inspectorBuf = new byte[16];
     private readonly Stack<(long Offset, byte[] Old, byte[] New)> _undoStack = new();
-    private readonly Stack<int>  _transactionSteps = new();
+    private readonly Stack<int> _transactionSteps = new();
     private static readonly string BaseDir = AppDomain.CurrentDomain.BaseDirectory;
 
-    private FileStream?      _rawVideoStream;
-    private byte[]?          _frameBuffer;
-    private readonly int     _videoWidth  = 24;
-    private readonly int     _videoHeight = 26;
-    private int              _videoTotalSize;
-    private string?          _activeScriptPath;
+    private FileStream? _rawVideoStream;
+    private byte[]? _frameBuffer;
+    private readonly int _videoWidth = 24;
+    private readonly int _videoHeight = 26;
+    private int _videoTotalSize;
+    private string? _activeScriptPath;
     private FileSystemWatcher? _scriptWatcher;
-    private volatile bool    _isProcessingScript = false;
-    private string?          _lastScriptPath;
-    private bool             IsLittleEndian = true;
+    private volatile bool _isProcessingScript = false;
+    private string? _lastScriptPath;
+    private bool IsLittleEndian = true;
 
     private readonly string ConfigPath =
         Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "hotkey.cfg");
@@ -271,11 +272,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        Instance        = this;
+        Instance = this;
         PreviewKeyDown += MainWindow_PreviewKeyDown;
 
         _logFlushTimer = new System.Windows.Threading.DispatcherTimer
-            { Interval = TimeSpan.FromMilliseconds(100) };
+        { Interval = TimeSpan.FromMilliseconds(100) };
         _logFlushTimer.Tick += FlushLogBuffer;
         _logFlushTimer.Start();
 
@@ -291,8 +292,8 @@ public partial class MainWindow : Window
         _logQueue.Enqueue((line, color));
     }
 
-    private void SafeLog(string msg, Brush color)       => Log(msg, color);
-    private void LogMessage(string msg)                 => Log(msg, Brushes.White);
+    private void SafeLog(string msg, Brush color) => Log(msg, color);
+    private void LogMessage(string msg) => Log(msg, Brushes.White);
     private void SafeLogThreadSafe(string msg, Brush c) => Log(msg, c);
 
     private void FlushLogBuffer(object? sender, EventArgs e)
@@ -343,16 +344,16 @@ public partial class MainWindow : Window
 
     private void UpdateGlobalConfig(string? htkPath = null, string? themePath = null)
     {
-        string configPath    = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "euva.cfg");
-        string defaultTheme  = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Theming", "default.themes");
-        string currentHtk    = "", currentTheme = defaultTheme, alwaysDefault = defaultTheme;
+        string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "euva.cfg");
+        string defaultTheme = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Theming", "default.themes");
+        string currentHtk = "", currentTheme = defaultTheme, alwaysDefault = defaultTheme;
 
         if (File.Exists(configPath))
         {
             var lines = File.ReadAllLines(configPath);
-            if (lines.Length > 0) currentHtk    = lines[0];
-            if (lines.Length > 1) currentTheme   = lines[1];
-            if (lines.Length > 2) alwaysDefault  = lines[2];
+            if (lines.Length > 0) currentHtk = lines[0];
+            if (lines.Length > 1) currentTheme = lines[1];
+            if (lines.Length > 2) alwaysDefault = lines[2];
         }
         File.WriteAllLines(configPath, new[]
         {
@@ -368,7 +369,7 @@ public partial class MainWindow : Window
     private void OpenFile()
     {
         var dialog = new OpenFileDialog
-            { Filter = "Executable Files (*.exe;*.dll)|*.exe;*.dll|All Files (*.*)|*.*", Title = "Select PE File" };
+        { Filter = "Executable Files (*.exe;*.dll)|*.exe;*.dll|All Files (*.*)|*.*", Title = "Select PE File" };
         if (dialog.ShowDialog() == true) LoadFile(dialog.FileName);
     }
 
@@ -440,7 +441,7 @@ public partial class MainWindow : Window
             if (remaining >= 1)
             {
                 byte b = _inspectorBuf[0];
-                items.Add(new InspectorItem("Int8 / UInt8",     $"{(sbyte)b} | {b}",     $"{b:X2}"));
+                items.Add(new InspectorItem("Int8 / UInt8", $"{(sbyte)b} | {b}", $"{b:X2}"));
                 items.Add(new InspectorItem("Двоичный (8 бит)", Convert.ToString(b, 2).PadLeft(8, '0'), "-"));
             }
             if (remaining >= 2)
@@ -464,10 +465,10 @@ public partial class MainWindow : Window
             if (remaining >= 4)
             {
                 var s4 = new ReadOnlySpan<byte>(_inspectorBuf, 0, 4);
-                uint  uv = IsLittleEndian ? MemoryMarshal.Read<uint>(s4)
+                uint uv = IsLittleEndian ? MemoryMarshal.Read<uint>(s4)
                                           : BinaryPrimitives.ReadUInt32BigEndian(s4);
                 float fv = MemoryMarshal.Read<float>(s4);
-                items.Add(new InspectorItem("Int32 / UInt32",   $"{(int)uv} | {uv}",
+                items.Add(new InspectorItem("Int32 / UInt32", $"{(int)uv} | {uv}",
                     BitConverter.ToString(_inspectorBuf, 0, 4)));
                 items.Add(new InspectorItem("Single (float32)", fv.ToString("G6"), "-"));
                 items.Add(new InspectorItem("time_t (32 бит)",
@@ -479,10 +480,10 @@ public partial class MainWindow : Window
             if (remaining >= 8)
             {
                 var s8 = new ReadOnlySpan<byte>(_inspectorBuf, 0, 8);
-                ulong  uv = IsLittleEndian ? MemoryMarshal.Read<ulong>(s8)
+                ulong uv = IsLittleEndian ? MemoryMarshal.Read<ulong>(s8)
                                            : BinaryPrimitives.ReadUInt64BigEndian(s8);
                 double dv = MemoryMarshal.Read<double>(s8);
-                items.Add(new InspectorItem("Int64 / UInt64",   uv.ToString(),
+                items.Add(new InspectorItem("Int64 / UInt64", uv.ToString(),
                     BitConverter.ToString(_inspectorBuf, 0, 8)));
                 items.Add(new InspectorItem("Double (float64)", dv.ToString("G8"), "-"));
                 items.Add(new InspectorItem("FILETIME",
@@ -554,14 +555,14 @@ public partial class MainWindow : Window
         Mouse.OverrideCursor = Cursors.Wait;
         try
         {
-            int    size = (int)Math.Min(HexView.FileLength, 10 * 1024 * 1024);
-            byte[] buf  = ArrayPool<byte>.Shared.Rent(size);
+            int size = (int)Math.Min(HexView.FileLength, 10 * 1024 * 1024);
+            byte[] buf = ArrayPool<byte>.Shared.Rent(size);
             try
             {
                 HexView.ReadBytes(0, buf.AsSpan(0, size));
-                var mem      = new ReadOnlyMemory<byte>(buf, 0, size);
+                var mem = new ReadOnlyMemory<byte>(buf, 0, size);
                 var progress = new Progress<string>(msg => LogMessage(msg));
-                var results  = await _detectorManager.AnalyzeAsync(
+                var results = await _detectorManager.AnalyzeAsync(
                     mem, _mapper.RootStructure, progress);
 
                 DetectionList.ItemsSource = null;
@@ -588,12 +589,12 @@ public partial class MainWindow : Window
             return;
         }
         LogMessage("Calculating entropy (Top 10MB)...");
-        int    size = (int)Math.Min(HexView.FileLength, 10 * 1024 * 1024);
-        byte[] buf  = ArrayPool<byte>.Shared.Rent(size);
+        int size = (int)Math.Min(HexView.FileLength, 10 * 1024 * 1024);
+        byte[] buf = ArrayPool<byte>.Shared.Rent(size);
         try
         {
             HexView.ReadBytes(0, buf.AsSpan(0, size));
-            var span    = buf.AsSpan(0, size);
+            var span = buf.AsSpan(0, size);
             var regions = _mapper.GetRegions();
             foreach (var r in SignatureScanner.AnalyzeSectionEntropy(span, regions))
                 LogMessage($"  {r.Key}: {r.Value:F3} bits");
@@ -603,13 +604,13 @@ public partial class MainWindow : Window
     }
     private long FindSignature(string pattern)
     {
-        var  parts  = pattern.Split(' ');
-        int  patLen = parts.Length;
+        var parts = pattern.Split(' ');
+        int patLen = parts.Length;
         if (patLen == 0) return -1;
 
-        byte[] pat    = new byte[patLen];
+        byte[] pat = new byte[patLen];
         bool[] isMask = new bool[patLen];
-        bool   anyWild = false;
+        bool anyWild = false;
 
         for (int i = 0; i < patLen; i++)
         {
@@ -635,10 +636,10 @@ public partial class MainWindow : Window
 
             while (pos <= fileLen - patLen)
             {
-                long avail   = fileLen - pos;
-                int  toRead  = (int)Math.Min(ChunkSize, avail);
-                int  overlap = (int)Math.Min(patLen - 1, avail - toRead);
-                int  total   = toRead + overlap;
+                long avail = fileLen - pos;
+                int toRead = (int)Math.Min(ChunkSize, avail);
+                int overlap = (int)Math.Min(patLen - 1, avail - toRead);
+                int total = toRead + overlap;
 
                 HexView.ReadBytes(pos, chunk.AsSpan(0, total));
                 int found = chunk.AsSpan(0, total).IndexOf(patSpan);
@@ -663,12 +664,12 @@ public partial class MainWindow : Window
             long pos = 0;
             while (pos <= fileLen - patLen)
             {
-                long avail   = fileLen - pos;
-                int  toRead  = (int)Math.Min(ChunkSize, avail);
-                int  overlap = (int)Math.Min(patLen - 1, avail - toRead);
-                int  total   = toRead + overlap;
+                long avail = fileLen - pos;
+                int toRead = (int)Math.Min(ChunkSize, avail);
+                int overlap = (int)Math.Min(patLen - 1, avail - toRead);
+                int total = toRead + overlap;
 
-                int  limit   = total - patLen + 1;
+                int limit = total - patLen + 1;
 
                 HexView.ReadBytes(pos, chunk.AsSpan(0, total));
 
@@ -700,13 +701,13 @@ public partial class MainWindow : Window
         if (HexView.FileLength == 0) { Log("[Engine] FATAL: No file loaded!", Brushes.Red); return; }
 
         SafeLog($"[Engine] Starting script: {Path.GetFileName(scriptPath)}", Brushes.White);
-        int      stepsInThisRun = 0;
+        int stepsInThisRun = 0;
         string[] lines;
-        try   { lines = await File.ReadAllLinesAsync(scriptPath); }
+        try { lines = await File.ReadAllLinesAsync(scriptPath); }
         catch (Exception ex) { Log($"[Engine] IO Error: {ex.Message}", Brushes.Red); return; }
 
-        int  totalChanges = 0;
-        var  globalScope  = new Dictionary<string, long>();
+        int totalChanges = 0;
+        var globalScope = new Dictionary<string, long>();
 
 
 
@@ -717,7 +718,7 @@ public partial class MainWindow : Window
         {
             try
             {
-                long   lastAddress    = 0;
+                long lastAddress = 0;
                 string currentModifier = "default";
                 MethodContainer? currentMethod = null;
                 bool inScriptBody = false, isTerminated = false;
@@ -730,13 +731,13 @@ public partial class MainWindow : Window
 
                     if (line.ToLower() == "start;") { inScriptBody = true; continue; }
                     if (!inScriptBody) continue;
-                    if (line.ToLower() == "end;")   { isTerminated = true; break; }
+                    if (line.ToLower() == "end;") { isTerminated = true; break; }
 
                     if (line.EndsWith(":"))
                     {
                         var mod = line.Replace(":", "").ToLower();
                         if (mod == "public" || mod == "private")
-                            { currentModifier = mod; continue; }
+                        { currentModifier = mod; continue; }
                     }
 
                     if (line.StartsWith("_createMethod"))
@@ -821,8 +822,8 @@ public partial class MainWindow : Window
                 var fp = ExtractInsideBrackets(line).Split('=');
                 if (fp.Length < 2) return;
                 string varName = fp[0].Trim();
-                string sigPat  = fp[1].Trim();
-                long   rawAddr = FindSignature(sigPat);
+                string sigPat = fp[1].Trim();
+                long rawAddr = FindSignature(sigPat);
 
                 if (rawAddr == -1)
                 {
@@ -843,8 +844,8 @@ public partial class MainWindow : Window
                 var sp = ExtractInsideBrackets(line).Split('=');
                 if (sp.Length < 2) return;
                 string varName = sp[0].Trim();
-                long   val     = ParseMath(sp[1], lastAddress, localScope, globalScope);
-                localScope[varName] = val; 
+                long val = ParseMath(sp[1], lastAddress, localScope, globalScope);
+                localScope[varName] = val;
 
                 if (val == long.MinValue)
                     SafeLogThreadSafe(
@@ -890,7 +891,7 @@ public partial class MainWindow : Window
                 if (line.Contains(':'))
                 {
                     string dataPart = line.Split(':')[1].Trim();
-                    byte[]? bytes   = AsmLogic.Assemble(dataPart, addr);
+                    byte[]? bytes = AsmLogic.Assemble(dataPart, addr);
 
                     if (bytes == null && dataPart.Contains('"'))
                     {
@@ -920,7 +921,7 @@ public partial class MainWindow : Window
                         });
 
                         totalChanges += bytes.Length;
-                        lastAddress   = addr + bytes.Length;
+                        lastAddress = addr + bytes.Length;
 
                         Dispatcher.BeginInvoke(new Action(() => HexView.InvalidateVisual()),
                             System.Windows.Threading.DispatcherPriority.Background);
@@ -954,7 +955,7 @@ public partial class MainWindow : Window
                         i++;
                     string token = src.Slice(start, i - start).ToString();
 
-                    long val = localScope.TryGetValue(token,  out long lv) ? lv
+                    long val = localScope.TryGetValue(token, out long lv) ? lv
                              : globalScope.TryGetValue(token, out long gv) ? gv
                              : 0L;
                     if (val == long.MinValue) return long.MinValue;
@@ -973,9 +974,12 @@ public partial class MainWindow : Window
     private static void AppendLong(char[] buf, ref int len, long v)
     {
         if (v == 0) { if (len < buf.Length) buf[len++] = '0'; return; }
-        if (v < 0)  { if (len < buf.Length) buf[len++] = '-';
-                      if (v == long.MinValue) { AppendStr(buf, ref len, "9223372036854775808"); return; }
-                      v = -v; }
+        if (v < 0)
+        {
+            if (len < buf.Length) buf[len++] = '-';
+            if (v == long.MinValue) { AppendStr(buf, ref len, "9223372036854775808"); return; }
+            v = -v;
+        }
         int start = len;
         while (v > 0 && len < buf.Length) { buf[len++] = (char)('0' + v % 10); v /= 10; }
         int end = len - 1;
@@ -1011,7 +1015,7 @@ public partial class MainWindow : Window
             long rhs = EvalUnary(s, ref p);
             lhs = op == '*' ? lhs * rhs
                 : op == '/' ? (rhs == 0 ? 0 : lhs / rhs)
-                :              (rhs == 0 ? 0 : lhs % rhs);
+                : (rhs == 0 ? 0 : lhs % rhs);
             SkipWs(s, ref p);
         }
         return lhs;
@@ -1057,11 +1061,11 @@ public partial class MainWindow : Window
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void SkipWs(ReadOnlySpan<char> s, ref int p)
     { while (p < s.Length && s[p] == ' ') p++; }
-    private static byte[] ParseBytes(string s)      => ParseBytes(s.AsSpan());
+    private static byte[] ParseBytes(string s) => ParseBytes(s.AsSpan());
     private static byte[] ParseBytes(ReadOnlySpan<char> input)
     {
         int count = 0;
-        for (int i = 0; i + 1 < input.Length; )
+        for (int i = 0; i + 1 < input.Length;)
         {
             if (IsHexChar(input[i]) && IsHexChar(input[i + 1])) { count++; i += 2; }
             else i++;
@@ -1070,7 +1074,7 @@ public partial class MainWindow : Window
 
         byte[] result = new byte[count];
         int ri = 0;
-        for (int i = 0; i + 1 < input.Length && ri < count; )
+        for (int i = 0; i + 1 < input.Length && ri < count;)
         {
             if (IsHexChar(input[i]) && IsHexChar(input[i + 1]))
             {
@@ -1109,7 +1113,7 @@ public partial class MainWindow : Window
     {
         double p = (double)offset / totalSize;
         if (offset < 0x400) return "PE Header (Metadata)";
-        if (p > 0.95)       return "EOF / Overlay Data";
+        if (p > 0.95) return "EOF / Overlay Data";
         return $"Data Region ({p * 100:F1}%)";
     }
 
@@ -1152,8 +1156,8 @@ public partial class MainWindow : Window
                 $"0x{targetOffset:X8}", "16 bytes", GetHexPreview(targetOffset), region));
             ConsoleLog.AppendText($"\n[Jump] Moved to {region} at 0x{targetOffset:X8}");
         }
-        catch (FormatException)  { ConsoleLog.AppendText($"\n[Search Error] '{input}' is not a valid HEX string."); }
-        catch (Exception ex)     { ConsoleLog.AppendText($"\n[Error] {ex.Message}"); }
+        catch (FormatException) { ConsoleLog.AppendText($"\n[Search Error] '{input}' is not a valid HEX string."); }
+        catch (Exception ex) { ConsoleLog.AppendText($"\n[Error] {ex.Message}"); }
     }
 
     private void SearchInput_KeyDown(object sender, KeyEventArgs e)
@@ -1163,10 +1167,10 @@ public partial class MainWindow : Window
 
     private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        Key key    = e.Key == Key.System ? e.SystemKey : e.Key;
+        Key key = e.Key == Key.System ? e.SystemKey : e.Key;
         var action = HotkeyManager.GetAction(Keyboard.Modifiers, key);
 
-        if (action == EUVAAction.Undo)     { PerformUndo();     e.Handled = true; return; }
+        if (action == EUVAAction.Undo) { PerformUndo(); e.Handled = true; return; }
         if (action == EUVAAction.FullUndo) { PerformFullUndo(); e.Handled = true; return; }
 
         if (action >= EUVAAction.NavInspector && action <= EUVAAction.NavProperties)
@@ -1197,8 +1201,10 @@ public partial class MainWindow : Window
     private void MenuThemeSelect_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
-            { Filter = "EUVA Theme Files (*.themes)|*.themes|All Files (*.*)|*.*",
-              Title  = "Select Theme File" };
+        {
+            Filter = "EUVA Theme Files (*.themes)|*.themes|All Files (*.*)|*.*",
+            Title = "Select Theme File"
+        };
         if (dialog.ShowDialog() != true) return;
         try
         {
@@ -1244,8 +1250,10 @@ public partial class MainWindow : Window
     private void MenuHotkeys_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
-            { Filter = "EUVA Hotkeys Files (*.htk)|*.htk|All Files (*.*)|*.*",
-              Title  = "Select Hotkeys File" };
+        {
+            Filter = "EUVA Hotkeys Files (*.htk)|*.htk|All Files (*.*)|*.*",
+            Title = "Select Hotkeys File"
+        };
         if (dialog.ShowDialog() != true) return;
         HotkeyManager.Load(dialog.FileName);
         UpdateGlobalConfig(htkPath: dialog.FileName);
@@ -1258,7 +1266,7 @@ public partial class MainWindow : Window
         if (MagicModeMenuItem.IsChecked)
         {
             var dialog = new Microsoft.Win32.OpenFileDialog
-                { Filter = "Raw Video|*.raw;*.bin|All Files|*.*" };
+            { Filter = "Raw Video|*.raw;*.bin|All Files|*.*" };
             if (dialog.ShowDialog() == true) StartRawVideo(dialog.FileName);
             else MagicModeMenuItem.IsChecked = false;
         }
@@ -1268,7 +1276,7 @@ public partial class MainWindow : Window
     private void StartRawVideo(string path)
     {
         _videoTotalSize = _videoWidth * _videoHeight;
-        _frameBuffer    = new byte[_videoTotalSize];
+        _frameBuffer = new byte[_videoTotalSize];
         _rawVideoStream = new FileStream(path, FileMode.Open, FileAccess.Read,
             FileShare.Read, 8192, FileOptions.SequentialScan);
         HexView.IsMediaMode = true;
@@ -1290,7 +1298,7 @@ public partial class MainWindow : Window
         HexView.IsMediaMode = false;
         _rawVideoStream?.Dispose();
         _rawVideoStream = null;
-        _frameBuffer    = null;
+        _frameBuffer = null;
         HexView.InvalidateVisual();
         LogMessage("[MediaHex] Stopped.");
     }
@@ -1298,8 +1306,10 @@ public partial class MainWindow : Window
     private void MenuWatchScript_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
-            { Filter = "Euva Scripts (*.euv)|*.euv|All Files (*.*)|*.*",
-              Title  = "Select Script to Watch" };
+        {
+            Filter = "Euva Scripts (*.euv)|*.euv|All Files (*.*)|*.*",
+            Title = "Select Script to Watch"
+        };
         if (dialog.ShowDialog() != true) return;
         _lastScriptPath = dialog.FileName;
         StartScriptWatcher(dialog.FileName);
@@ -1311,11 +1321,11 @@ public partial class MainWindow : Window
     {
         _scriptWatcher?.Dispose();
         _activeScriptPath = path;
-        _scriptWatcher    = new FileSystemWatcher(Path.GetDirectoryName(path)!)
+        _scriptWatcher = new FileSystemWatcher(Path.GetDirectoryName(path)!)
         {
-            Filter              = Path.GetFileName(path),
-            NotifyFilter        = NotifyFilters.LastWrite | NotifyFilters.Size |
-                                  NotifyFilters.FileName  | NotifyFilters.CreationTime,
+            Filter = Path.GetFileName(path),
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size |
+                                  NotifyFilters.FileName | NotifyFilters.CreationTime,
             EnableRaisingEvents = true
         };
         _scriptWatcher.Changed += OnScriptUpdated;
@@ -1331,7 +1341,7 @@ public partial class MainWindow : Window
         await Dispatcher.InvokeAsync(async () =>
         {
             Log($"[Debug] Script change detected...", Brushes.Yellow);
-            try   { await RunParallelEngine(e.FullPath); }
+            try { await RunParallelEngine(e.FullPath); }
             catch (Exception ex) { Log($"[Error] {ex.Message}", Brushes.Red); }
             finally { _isProcessingScript = false; }
         });

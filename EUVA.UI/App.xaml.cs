@@ -7,7 +7,7 @@ using EUVA.UI.Theming;
 namespace EUVA.UI;
 
 public partial class App : Application
-{   
+{
     protected override void OnStartup(StartupEventArgs e)
     {
         System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
@@ -21,7 +21,7 @@ public partial class App : Application
 
         try
         {
-            var tm   = ThemeManager.Instance;
+            var tm = ThemeManager.Instance;
             var path = EuvaSettings.Default.LastThemePath;
 
             if (string.IsNullOrWhiteSpace(path))

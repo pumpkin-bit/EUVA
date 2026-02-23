@@ -4,7 +4,7 @@ namespace EUVA.Core.Interfaces;
 
 public interface IBinaryMapper
 {
-    
+
     BinaryStructure Parse(ReadOnlySpan<byte> data);
     IReadOnlyList<DataRegion> GetRegions();
     DataRegion? FindRegionAt(long offset);

@@ -3,7 +3,6 @@ start;
 public:
 _createMethod(ComplexTest)
 {
-   
     find(myFunc = 55 8B EC)
 
     myFunc: mov eax, 1
