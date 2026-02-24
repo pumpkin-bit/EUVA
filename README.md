@@ -90,17 +90,17 @@ You can install either the native version from the resilient library or compile 
 
 
 
-`NavInspector` - `Alt+1`        Switch to Inspector tab 
-`NavSearch` - `Alt+2`           Switch to Search tab 
-`NavDetections` - `Alt+3`       Switch to Detections tab 
-`NavProperties` - `Alt+4`       Switch to Properties tab
+- `NavInspector` - `Alt+1`        Switch to Inspector tab 
+- `NavSearch` - `Alt+2`           Switch to Search tab 
+- `NavDetections` - `Alt+3`       Switch to Detections tab 
+- `NavProperties` - `Alt+4`       Switch to Properties tab
 
-`CopyHex` - `Ctrl+C`            Copy selection as hex string 
-`CopyCArray` - `Ctrl+Shift+C`   Copy selection as C byte array 
-`CopyPlainText` - `Ctrl+Alt+C`  Copy selection as Plain text 
+- `CopyHex` - `Ctrl+C`            Copy selection as hex string 
+- `CopyCArray` - `Ctrl+Shift+C`   Copy selection as C byte array 
+- `CopyPlainText` - `Ctrl+Alt+C`  Copy selection as Plain text 
 
-`Undo` - `Ctrl+Z`               Undo last byte write 
-`FullUndo` - `Ctrl+Shift+Z`     Revert entire last script run 
+- `Undo` - `Ctrl+Z`               Undo last byte write 
+- `FullUndo` - `Ctrl+Shift+Z`     Revert entire last script run 
 
 **You can reassign hotkeys by loading (via the settings in the program menu) and editing the .htk file.**
 
