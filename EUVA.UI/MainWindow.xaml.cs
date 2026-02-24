@@ -392,7 +392,7 @@ public partial class MainWindow : Window
             StructureTree.RootStructure = structure;
             HexView.Regions = _mapper.GetRegions().ToList();
             StatusText.Text = $"Loaded: {Path.GetFileName(filePath)} ({fileSize:N0} bytes)";
-            LogMessage("File mapped successfully (MMF mode)");
+            LogMessage("File mapped successfully");
 
             lock (_undoStack)
             {
