@@ -12,6 +12,7 @@ The interface has a limit on the number of records. If the limit is exceeded, th
 
 You can also change the ruleset on the fly if there's a new rules file.
 And there's a shutdown system that doesn't just throw an exception but tries to terminate gracefully via a flag. However, you need to be careful with this, as it's an experimental feature and its behavior may be ambiguous at the moment. When a match is found, the program needs to show it in the byte grid; a pointer is taken; chunk boundaries are checked, or the entire file is not checked; if the file is small, the bytes are converted to a string using bitwise shifts.
+
 ---
 
 **YaraIntegration.cs**
