@@ -2,6 +2,7 @@
 
 
 using System;
+using System.Collections.Concurrent;
 using System.Buffers;
 using System.IO;
 using System.IO.MemoryMappedFiles;
@@ -48,6 +49,9 @@ public readonly record struct YaraScanProgress(
 
 public sealed class YaraEngine : IDisposable
 {
+    private static readonly ConcurrentDictionary<string, string> _stringPool = new();
+    private const int StringPoolMaxSize = 10_000;
+
     private YaraxRulesHandle? _rulesHandle;
     private byte[]? _rulesFileHash;
     private string? _rulesFilePath;
@@ -56,30 +60,45 @@ public sealed class YaraEngine : IDisposable
     private volatile CancellationTokenSource? _scanCts;
     private volatile bool _isScanRunning;
     public bool IsScanRunning => _isScanRunning;
+    private const long LargeFileThreshold = 256L * 1024 * 1024; 
+    private const int ChunkSize    = 16 * 1024 * 1024;
+    private const int ChunkOverlap = 64 * 1024;       
+    private const int MaxMatchesPerChunk = 50_000;
 
-    private const long LargeFileThreshold = 256L * 1024 * 1024;
-    private const int ChunkSize = 64 * 1024 * 1024;
-    private const int ChunkOverlap = 4 * 1024;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string Intern(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return s;
+        if (_stringPool.Count > StringPoolMaxSize) _stringPool.Clear();
+        return _stringPool.GetOrAdd(s, s);
+    }
+
+    public static Channel<YaraMatch> CreateBoundedChannel(int capacity = 1_000) =>
+        Channel.CreateBounded<YaraMatch>(new BoundedChannelOptions(capacity)
+        {
+            SingleWriter = true,         
+            SingleReader = false,       
+            FullMode     = BoundedChannelFullMode.Wait,
+        });
 
     public async Task<bool> LoadRulesAsync(
         string path,
         IProgress<string>? progress = null,
         CancellationToken ct = default)
     {
+        byte[] hash = await ComputeFileHashAsync(path, ct).ConfigureAwait(false);
+
         await _compileLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            // This function does not imply full hashing, but only partial, that is, the first 64kb, but this will be sufficient for a larger percentage of rule files,
-            // otherwise I risk losing speed with full hashing. This compromise is sufficient for most rule files.
-            byte[] hash = await ComputeFileHashAsync(path, ct).ConfigureAwait(false);
             if (_rulesFileHash != null && _rulesFilePath == path &&
                 hash.AsSpan().SequenceEqual(_rulesFileHash.AsSpan()))
             {
-                progress?.Report("[YARA] Rules unchanged reusing cached compilation.");
+                progress?.Report("[YARA] Rules unchanged, reusing cached compilation.");
                 return true;
             }
 
-            progress?.Report($"[YARA] Compiling: {System.IO.Path.GetFileName(path)} …");
+            progress?.Report($"[YARA] Compiling: {Path.GetFileName(path)} …");
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
             YaraxRulesHandle newRules = await Task.Run(() =>
@@ -114,28 +133,29 @@ public sealed class YaraEngine : IDisposable
         IProgress<YaraScanProgress>? progress = null,
         CancellationToken ct = default)
     {
-        var rules = _rulesHandle ?? throw new InvalidOperationException("No rules compiled. Load a .yar file first.");
+        var rules = _rulesHandle
+            ?? throw new InvalidOperationException("No rules compiled. Load a .yar file first.");
+            
+        if (IntPtr.Size == 4 && fileLength > int.MaxValue)
+            throw new PlatformNotSupportedException(
+                "Scanning files larger than 2 GB requires a 64-bit process.");
+
         if (fileLength <= 0) { writer.TryComplete(); return; }
 
         _scanCts?.Cancel();
-        using var cts = new CancellationTokenSource();
-        _scanCts = cts;
+        using var cts    = new CancellationTokenSource();
+        _scanCts          = cts;
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, cts.Token);
-        var token = linked.Token;
+        var token         = linked.Token;
 
         _isScanRunning = true;
-        int matchCount = 0;
+        int matchCount  = 0;
 
         try
         {
-            if (fileLength <= LargeFileThreshold)
-            {
-                matchCount = await ScanSmallAsync(mmf, fileLength, rules, writer, progress, token).ConfigureAwait(false);
-            }
-            else
-            {
-                matchCount = await ScanLargeAsync(mmf, fileLength, rules, writer, progress, token).ConfigureAwait(false);
-            }
+            matchCount = fileLength <= LargeFileThreshold
+                ? await ScanSmallAsync(mmf, fileLength, rules, writer, progress, token).ConfigureAwait(false)
+                : await ScanLargeAsync(mmf, fileLength, rules, writer, progress, token).ConfigureAwait(false);
         }
         finally
         {
@@ -155,66 +175,63 @@ public sealed class YaraEngine : IDisposable
         CancellationToken ct)
     {
         int size = (int)fileLength;
-        byte[] buf = ArrayPool<byte>.Shared.Rent(size);
-        try
+        var pendingMatches = new System.Collections.Generic.List<YaraMatch>();
+
+        using var acc = mmf.CreateViewAccessor(0, fileLength, MemoryMappedFileAccess.Read);
+
+        await Task.Run(() =>
         {
-            using (var acc = mmf.CreateViewAccessor(0, fileLength, MemoryMappedFileAccess.Read))
+            unsafe
             {
-                await Task.Run(() =>
-                {
-                    unsafe
-                    {
-                        byte* ptr = null;
-                        acc.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
-                        try
-                        {
-                            new ReadOnlySpan<byte>(ptr, size).CopyTo(buf.AsSpan(0, size));
-                        }
-                        finally
-                        {
-                            acc.SafeMemoryMappedViewHandle.ReleasePointer();
-                        }
-                    }
-                }, ct).ConfigureAwait(false);
-            }
-
-            ct.ThrowIfCancellationRequested();
-
-            int localCount = 0;
-            await Task.Run(() =>
-            {
-                using var scanner = new YaraxScanner(rules);
-                scanner.OnHit += (ref YaraxRuleHit hit) =>
+                byte* ptr = null;
+                acc.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
+                try
                 {
                     ct.ThrowIfCancellationRequested();
-                    string ruleName = hit.Name;
-                    string? ns = hit.Namespace;
 
-                    foreach (var match in hit.Matches)
+                    bool cancelFlag = false;
+
+                    using var scanner = new YaraxScanner(rules);
+                    scanner.OnHit += (ref YaraxRuleHit hit) =>
                     {
-                        long offset = (long)match.Offset;
-                        string? id = null;
-                        string raw = match.ToString() ?? "";
-                        int at = raw.IndexOf(" @ ", StringComparison.Ordinal);
-                        if (at > 0) id = raw[..at].Trim();
+                        if (cancelFlag) return;
+                        if (ct.IsCancellationRequested) { cancelFlag = true; return; }
 
-                        var ym = new YaraMatch(
-                            ruleName, ns, id, offset,
-                            BuildHexContext(buf.AsSpan(0, size), offset));
+                        if (pendingMatches.Count >= MaxMatchesPerChunk) { cancelFlag = true; return; }
 
-                        writer.TryWrite(ym);
-                        localCount++;
-                    }
-                };
-                scanner.Scan(buf.AsSpan(0, size));
-            }, ct).ConfigureAwait(false);
+                        string  ruleName = Intern(hit.Name);
+                        string? ns       = hit.Namespace != null ? Intern(hit.Namespace) : null;
 
-            return localCount;
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(buf);
-        }
+                        foreach (var match in hit.Matches)
+                        {
+                            long offset = (long)match.Offset;
+
+                            string? id  = null;
+                            string  raw = match.ToString() ?? "";
+                            int     at  = raw.IndexOf(" @ ", StringComparison.Ordinal);
+                            if (at > 0) id = raw[..at].Trim();
+
+                            pendingMatches.Add(new YaraMatch(ruleName, ns, id, offset,
+                                BuildHexContext(ptr, size, offset)));
+
+                            if (pendingMatches.Count >= MaxMatchesPerChunk) { cancelFlag = true; return; }
+                        }
+                    };
+
+                    scanner.Scan(new ReadOnlySpan<byte>(ptr, size));
+                    if (cancelFlag) ct.ThrowIfCancellationRequested();
+                }
+                finally
+                {
+                    acc.SafeMemoryMappedViewHandle.ReleasePointer();
+                }
+            }
+        }, ct).ConfigureAwait(false);
+
+        foreach (var ym in pendingMatches)
+            await writer.WriteAsync(ym, ct).ConfigureAwait(false);
+
+        return pendingMatches.Count;
     }
 
     private static async Task<int> ScanLargeAsync(
@@ -225,131 +242,134 @@ public sealed class YaraEngine : IDisposable
         IProgress<YaraScanProgress>? progress,
         CancellationToken ct)
     {
-        int bufSize = ChunkSize + ChunkOverlap;
-        byte[] buf = ArrayPool<byte>.Shared.Rent(bufSize);
-        int localCount = 0;
+        int  localCount = 0;
         long chunkStart = 0;
 
-        try
+        while (chunkStart < fileLength)
         {
-            while (chunkStart < fileLength)
+            ct.ThrowIfCancellationRequested();
+
+            long remaining = fileLength - chunkStart;
+            int readSize = (int)Math.Min((long)ChunkSize + ChunkOverlap, remaining);
+            int scanSize = (int)Math.Min(ChunkSize, remaining);
+            long capturedStart = chunkStart;
+            var pendingMatches = new System.Collections.Generic.List<YaraMatch>();
+
+         
+            using (var acc = mmf.CreateViewAccessor(chunkStart, readSize, MemoryMappedFileAccess.Read))
             {
-                ct.ThrowIfCancellationRequested();
-
-                long remaining = fileLength - chunkStart;
-                int readSize = (int)Math.Min(bufSize, remaining);
-                int scanSize = (int)Math.Min(ChunkSize, remaining);
-
-                using (var acc = mmf.CreateViewAccessor(chunkStart, readSize, MemoryMappedFileAccess.Read))
-                {
-                    await Task.Run(() =>
-                    {
-                        unsafe
-                        {
-                            byte* ptr = null;
-                            acc.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
-                            try
-                            {
-                                new ReadOnlySpan<byte>(ptr, readSize).CopyTo(buf.AsSpan(0, readSize));
-                            }
-                            finally
-                            {
-                                acc.SafeMemoryMappedViewHandle.ReleasePointer();
-                            }
-                        }
-                    }, ct).ConfigureAwait(false);
-                }
-
-                long capturedStart = chunkStart;
-                int chunkMatches = 0;
-
                 await Task.Run(() =>
                 {
-                    using var scanner = new YaraxScanner(rules);
-                    scanner.OnHit += (ref YaraxRuleHit hit) =>
+                    unsafe
                     {
-                        ct.ThrowIfCancellationRequested();
-                        string ruleName = hit.Name;
-                        string? ns = hit.Namespace;
-
-                        foreach (var match in hit.Matches)
+                        byte* ptr = null;
+                        acc.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
+                        try
                         {
-                            long localOffset = (long)match.Offset;
-                            if (localOffset >= scanSize) continue;
+                            ct.ThrowIfCancellationRequested();
+                            bool cancelFlag = false;
 
-                            long absOffset = capturedStart + localOffset;
+                            using var scanner = new YaraxScanner(rules);
+                            scanner.OnHit += (ref YaraxRuleHit hit) =>
+                            {
+                                if (cancelFlag) return;
+                                if (ct.IsCancellationRequested) { cancelFlag = true; return; }
+                                if (pendingMatches.Count >= MaxMatchesPerChunk) { cancelFlag = true; return; }
 
-                            string? id = null;
-                            string raw = match.ToString() ?? "";
-                            int at = raw.IndexOf(" @ ", StringComparison.Ordinal);
-                            if (at > 0) id = raw[..at].Trim();
+                                string  ruleName = Intern(hit.Name);
+                                string? ns       = hit.Namespace != null ? Intern(hit.Namespace) : null;
 
-                            var ym = new YaraMatch(
-                                ruleName, ns, id, absOffset,
-                                BuildHexContext(buf.AsSpan(0, readSize), localOffset));
+                                foreach (var match in hit.Matches)
+                                {
+                                    long localOffset = (long)match.Offset; 
+                                    if (localOffset >= scanSize) continue;
 
-                            writer.TryWrite(ym);
-                            chunkMatches++;
+                                    long absOffset = capturedStart + localOffset;
+
+                                    string? id  = null;
+                                    string  raw = match.ToString() ?? "";
+                                    int     at  = raw.IndexOf(" @ ", StringComparison.Ordinal);
+                                    if (at > 0) id = raw[..at].Trim();
+ 
+                                    pendingMatches.Add(new YaraMatch(ruleName, ns, id, absOffset,
+                                        BuildHexContext(ptr, readSize, localOffset)));
+ 
+                                    if (pendingMatches.Count >= MaxMatchesPerChunk) { cancelFlag = true; return; }
+                                }
+                            };
+
+                            scanner.Scan(new ReadOnlySpan<byte>(ptr, readSize));
+                            if (cancelFlag) ct.ThrowIfCancellationRequested();
                         }
-                    };
-                    scanner.Scan(buf.AsSpan(0, readSize));
+                        finally
+                        {
+                            acc.SafeMemoryMappedViewHandle.ReleasePointer();
+                        }
+                    }
                 }, ct).ConfigureAwait(false);
+            } 
+            foreach (var ym in pendingMatches)
+                await writer.WriteAsync(ym, ct).ConfigureAwait(false);
 
-                localCount += chunkMatches;
-                chunkStart += scanSize;
+            localCount += pendingMatches.Count;
+            chunkStart += scanSize;
 
-                progress?.Report(new YaraScanProgress(chunkStart, fileLength, localCount, false));
-            }
+            progress?.Report(new YaraScanProgress(chunkStart, fileLength, localCount, false));
         }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(buf);
-        }
+
         return localCount;
-    }
-
-    // this solution is used to avoid allocations and unnecessary bounds checking.
+    } 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string? BuildHexContext(ReadOnlySpan<byte> data, long offset)
+    private static unsafe string? BuildHexContext(byte* data, int dataLength, long offset)
     {
-        if (offset < 0 || offset >= data.Length) return null;
-        int take = (int)Math.Min(16, data.Length - offset);
+        if ((ulong)offset >= (ulong)dataLength) return null;
+
+        int take = (int)Math.Min(16L, dataLength - offset);
         if (take <= 0) return null;
 
-        Span<char> buf = stackalloc char[take * 3 - 1];
-        ref byte src = ref MemoryMarshal.GetReference(data);
+        Span<char> chars = stackalloc char[take * 3 - 1];
         int pos = 0;
+
+        byte* src = data + offset;
 
         for (int i = 0; i < take; i++)
         {
-            byte b = Unsafe.Add(ref src, (nint)(offset + i));
+            byte b  = src[i]; 
+            if (i > 0) chars[pos++] = ' ';
+
             int hi = b >> 4;
             int lo = b & 0xF;
-            if (i > 0) buf[pos++] = ' ';
-            buf[pos++] = (char)(hi < 10 ? '0' + hi : 'A' + hi - 10);
-            buf[pos++] = (char)(lo < 10 ? '0' + lo : 'A' + lo - 10);
+            chars[pos++] = (char)(hi < 10 ? '0' + hi : 'A' + hi - 10);
+            chars[pos++] = (char)(lo < 10 ? '0' + lo : 'A' + lo - 10);
         }
-        return new string(buf[..pos]);
+
+        return new string(chars);
     }
 
     private static async Task<byte[]> ComputeFileHashAsync(string path, CancellationToken ct)
     {
         return await Task.Run(() =>
         {
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read,
-                FileShare.Read, 65536, FileOptions.SequentialScan);
+            using var fs   = new FileStream(path, FileMode.Open, FileAccess.Read,
+                                 FileShare.Read, 65536, FileOptions.SequentialScan);
             byte[] head = ArrayPool<byte>.Shared.Rent(65536);
             try
             {
-                int read = fs.Read(head, 0, 65536);
+                int  read = fs.Read(head, 0, 65536);
                 long size = fs.Length;
-                var buf = new byte[read + 8];
-                Buffer.BlockCopy(head, 0, buf, 0, read);
-                MemoryMarshal.Write(buf.AsSpan(read), in size);
-                using var sha = SHA256.Create();
-                return sha.ComputeHash(buf);
+                using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                hash.AppendData(head, 0, read);
+
+                Span<byte> lenBytes = stackalloc byte[8];
+                MemoryMarshal.Write(lenBytes, in size);
+                hash.AppendData(lenBytes);
+
+                return hash.GetHashAndReset();
             }
-            finally { ArrayPool<byte>.Shared.Return(head); }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(head, clearArray: false);
+            }
         }, ct).ConfigureAwait(false);
     }
 

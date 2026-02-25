@@ -17,3 +17,6 @@ packages/
 
 *.dmp
 *.pdb
+
+native/
+Properties/
