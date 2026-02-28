@@ -230,7 +230,9 @@ public class VirtualizedHexView : FrameworkElement
 
         SizeChanged += (_, _) =>
         {
-            ResizeBitmap((int)ActualWidth, (int)ActualHeight);
+            int sysW = (int)Math.Max(1, ActualWidth * _pixelsPerDip);
+            int sysH = (int)Math.Max(1, ActualHeight * _pixelsPerDip);
+            ResizeBitmap(sysW, sysH);
             RequestFullRedraw();
         };
     }
@@ -337,7 +339,7 @@ public class VirtualizedHexView : FrameworkElement
         if (w == _bitmapWidth && h == _bitmapHeight) return;
         _bitmapWidth = w;
         _bitmapHeight = h;
-        _bitmap = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgra32, null);
+        _bitmap = new WriteableBitmap(w, h, 96.0 * _pixelsPerDip, 96.0 * _pixelsPerDip, PixelFormats.Bgra32, null);
         _backBuffer = new uint[w * h];
         _image.Source = _bitmap;
         _fullRedrawNeeded = true;
@@ -470,24 +472,7 @@ public class VirtualizedHexView : FrameworkElement
         RenderLineInternal(lineIdx, offset, offsetColPx, asciiColStartPx, _modifiedSnapshot);
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private uint GetByteColor(byte v)
     {
@@ -509,8 +494,8 @@ public class VirtualizedHexView : FrameworkElement
     private void RenderLineInternal(long lineIdx, long offset,
         int offsetColPx, int asciiColStartPx, HashSet<long> modSnap)
     {
-        long yPxLong = (lineIdx - _currentScrollLine) * (long)(_lineHeight * _pixelsPerDip)
-                       + (long)(25 * _pixelsPerDip);
+        long yPxLong = (long)Math.Round((lineIdx - _currentScrollLine) * _lineHeight * _pixelsPerDip)
+                       + (long)Math.Round(25 * _pixelsPerDip);
         if (yPxLong < 0 || yPxLong > int.MaxValue) return;
         int yPx = (int)yPxLong;
         if (yPx + CellH > _bitmapHeight) return;
@@ -767,8 +752,8 @@ public class VirtualizedHexView : FrameworkElement
             {
                 foreach (long lineIdx in _dirtyLines)
                 {
-                    long yPxLong = (lineIdx - _currentScrollLine) * (long)(_lineHeight * _pixelsPerDip)
-                                   + (long)(25 * _pixelsPerDip);
+                    long yPxLong = (long)Math.Round((lineIdx - _currentScrollLine) * _lineHeight * _pixelsPerDip)
+                                   + (long)Math.Round(25 * _pixelsPerDip);
                     if (yPxLong < 0 || yPxLong > int.MaxValue) continue;
                     int yPx = (int)yPxLong;
                     if (yPx < 0 || yPx + CellH > _bitmapHeight) continue;
@@ -784,8 +769,8 @@ public class VirtualizedHexView : FrameworkElement
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int LineToPixelY(long lineIdx)
     {
-        long v = (lineIdx - _currentScrollLine) * (long)(_lineHeight * _pixelsPerDip)
-                 + (long)(25 * _pixelsPerDip);
+        long v = (long)Math.Round((lineIdx - _currentScrollLine) * _lineHeight * _pixelsPerDip)
+                 + (long)Math.Round(25 * _pixelsPerDip);
         return (v < int.MinValue || v > int.MaxValue) ? int.MinValue : (int)v;
     }
 
@@ -1054,6 +1039,7 @@ public class VirtualizedHexView : FrameworkElement
         long final = baseOffset + byteIndex;
         return (final >= 0 && final < _fileLength) ? final : -1;
     }
+
     private void CopyAsHex()
     {
         if (!HasSelection) return;

@@ -72,8 +72,8 @@ public class ByteMinimapControl : FrameworkElement
 
         SizeChanged += (_, _) =>
         {
-            int w = (int)ActualWidth;
-            int h = (int)ActualHeight;
+            int w = (int)Math.Max(1, ActualWidth * _pixelsPerDip);
+            int h = (int)Math.Max(1, ActualHeight * _pixelsPerDip);
             if (w > 0 && h > 0)
             {
                 ResizeBitmap(w, h);
@@ -449,6 +449,8 @@ public class ByteMinimapControl : FrameworkElement
     {
         if (_fileLength <= 0) return;
 
+        y *= _pixelsPerDip;
+
         int mapH = MapHeight();
         if (mapH <= 0) return;
 
@@ -467,7 +469,7 @@ public class ByteMinimapControl : FrameworkElement
         if (w == _bmpW && h == _bmpH) return;
         _bmpW = w;
         _bmpH = h;
-        _bitmap = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgra32, null);
+        _bitmap = new WriteableBitmap(w, h, 96.0 * _pixelsPerDip, 96.0 * _pixelsPerDip, PixelFormats.Bgra32, null);
         _backBuffer = new uint[w * h];
         _image.Source = _bitmap;
         _needsFullRedraw = true;

@@ -667,9 +667,23 @@ public partial class MainWindow : Window
     private long FindBmhWild(byte[] pat, bool[] isMask, int patLen, long fileLen)
     {
         int[] bad = new int[256];
-        for (int i = 0; i < 256; i++) bad[i] = patLen;
+        int defaultSkip = patLen;
+        for (int i = patLen - 1; i >= 0; i--)
+        {
+            if (isMask[i])
+            {
+                defaultSkip = patLen - 1 - i;
+                if (defaultSkip == 0) defaultSkip = 1; 
+                break;
+            }
+        }
+        for (int i = 0; i < 256; i++) bad[i] = defaultSkip;
         for (int i = 0; i < patLen - 1; i++)
-            if (!isMask[i]) bad[pat[i]] = patLen - 1 - i;
+            if (!isMask[i]) 
+            {
+                int skip = patLen - 1 - i;
+                if (skip < bad[pat[i]]) bad[pat[i]] = skip;
+            }
 
         const int ChunkSize = 256 * 1024;
         byte[] chunk = ArrayPool<byte>.Shared.Rent(ChunkSize + patLen);
@@ -690,16 +704,19 @@ public partial class MainWindow : Window
                 int i = 0;
                 while (i < limit)
                 {
-                    int skip = bad[chunk[i + patLen - 1]];
-                    if (skip > 1) { i += skip; continue; }
-
-
                     bool match = true;
-                    for (int j = patLen - 1; j >= 0; j--)
-                        if (!isMask[j] && chunk[i + j] != pat[j]) { match = false; break; }
+                    if (!isMask[patLen - 1] && chunk[i + patLen - 1] != pat[patLen - 1])
+                    {
+                        match = false;
+                    }
+                    else
+                    {
+                        for (int j = patLen - 2; j >= 0; j--)
+                            if (!isMask[j] && chunk[i + j] != pat[j]) { match = false; break; }
+                    }
 
                     if (match) return pos + i;
-                    i++;
+                    i += bad[chunk[i + patLen - 1]];
                 }
                 pos += toRead;
             }
