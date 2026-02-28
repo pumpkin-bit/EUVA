@@ -271,8 +271,20 @@
 
         
             <Border Grid.Column="2" Background="#1E1E2E">
-                <controls:VirtualizedHexView x:Name="HexView"
-                    OffsetSelected="HexView_OffsetSelected"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="1"/>
+                        <ColumnDefinition Width="60"/>
+                    </Grid.ColumnDefinitions>
+                    <controls:VirtualizedHexView x:Name="HexView"
+                        Grid.Column="0"
+                        OffsetSelected="HexView_OffsetSelected"/>
+                    <Rectangle Grid.Column="1" Fill="#313244" Width="1"/>
+                    <controls:ByteMinimapControl x:Name="ByteMinimap"
+                        Grid.Column="2"
+                        NavigateRequested="ByteMinimap_NavigateRequested"/>
+                </Grid>
             </Border>
 
             

@@ -283,6 +283,9 @@ public partial class MainWindow : Window
         InitializeSystemSettings();
         InitializeDetectors();
         InitializeYara();
+
+        HexView.ScrollChanged += (scrollLine, visibleLines, bytesPerLine) =>
+            ByteMinimap.UpdateViewport(scrollLine, visibleLines, bytesPerLine);
     }
 
     public void Log(string message, Brush color)
@@ -391,6 +394,13 @@ public partial class MainWindow : Window
 
             StructureTree.RootStructure = structure;
             HexView.Regions = _mapper.GetRegions().ToList();
+            ByteMinimap.SetDataSource((offset, buf, count) =>
+            {
+                int toRead = (int)Math.Min(count, fileSize - offset);
+                if (toRead <= 0) return 0;
+                HexView.ReadBytes(offset, buf.AsSpan(0, toRead));
+                return toRead;
+            }, fileSize);
             StatusText.Text = $"Loaded: {Path.GetFileName(filePath)} ({fileSize:N0} bytes)";
             LogMessage("File mapped successfully");
 
@@ -424,6 +434,11 @@ public partial class MainWindow : Window
         e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop)
             ? DragDropEffects.Copy : DragDropEffects.None;
         e.Handled = true;
+    }
+
+    private void ByteMinimap_NavigateRequested(object? sender, long offset)
+    {
+        HexView.ScrollToOffset(offset);
     }
 
     private void HexView_OffsetSelected(object sender, long offset)

@@ -203,6 +203,12 @@ public class VirtualizedHexView : FrameworkElement
 
     public event EventHandler<long>? OffsetSelected;
 
+    public event Action<long, int, int>? ScrollChanged;
+
+    public long CurrentScrollLine => _currentScrollLine;
+    public int VisibleLineCount => (int)(ActualHeight / _lineHeight);
+    public int BytesPerLine => _bytesPerLine;
+
     public VirtualizedHexView()
     {
         if (PresentationSource.FromVisual(this) is { } ps)
@@ -375,6 +381,7 @@ public class VirtualizedHexView : FrameworkElement
             FlushBitmapFull();
             _fullRedrawNeeded = false;
             _dirtyLines.Clear();
+            FireScrollChanged();
         }
         else if (_dirtyLines.Count > 0)
         {
@@ -831,6 +838,7 @@ public class VirtualizedHexView : FrameworkElement
 
         _currentScrollLine = 0;
         RequestFullRedraw();
+        FireScrollChanged();
     }
 
     public void Dispose()
@@ -887,6 +895,7 @@ public class VirtualizedHexView : FrameworkElement
         if (offset < 0 || offset >= _fileLength) return;
         _currentScrollLine = offset / _bytesPerLine;
         RequestFullRedraw();
+        FireScrollChanged();
     }
 
     public void SetMediaFrame(byte[] frame) { _mediaBuffer = frame; RequestFullRedraw(); }
@@ -1006,6 +1015,7 @@ public class VirtualizedHexView : FrameworkElement
         long maxLines = _fileLength / _bytesPerLine;
         _currentScrollLine = Math.Clamp(_currentScrollLine + (e.Delta > 0 ? -3 : 3) * mult, 0, maxLines);
         RequestFullRedraw();
+        FireScrollChanged();
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -1071,5 +1081,10 @@ public class VirtualizedHexView : FrameworkElement
         var chars = new char[bytes.Length];
         for (int i = 0; i < bytes.Length; i++) chars[i] = _asciiLookupTable[bytes[i]];
         Clipboard.SetText(new string(chars));
+    }
+
+    private void FireScrollChanged()
+    {
+        ScrollChanged?.Invoke(_currentScrollLine, VisibleLineCount, _bytesPerLine);
     }
 }
