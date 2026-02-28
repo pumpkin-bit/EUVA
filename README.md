@@ -39,7 +39,8 @@ By using EUVA, you acknowledge that you are solely responsible for your actions,
 - **scriptable patching DSL** (`.euv` format) with live file-watch execution
 - **plugin-extensible detector pipeline** for packer/protector identification
 - **fully themeable rendering layer** with persistent theme state across sessions
-- **Addition of the Yara-X rules engine**, which allows for matching against thousands of pre-built rules for binary file analysis.
+- **Addition of the Yara-X rules engine** which allows for matching against thousands of pre-built rules for binary file analysis.
+- **Byte minimap** Allows you to instantly scan the hex grid of a binary file, simplifying research and instantly identifying where packed code or similar may be located.
 
 ---
 
@@ -57,6 +58,7 @@ To find out how a particular subsystem works, you can read the relevant document
 - [plugin-extensible-detector-pipeline](docs/Detectors.md)
 - [fully-themeable-rendering-layer](docs/Themes.md)
 - [Addition-of-the-Yara-X-rules-engine](docs/EuvaUseYaraX.md)
+- [Byte minimap](docs/byteminimap.md)
 
 ---
 
