@@ -23,7 +23,7 @@ If you found a bug or have a suggestion:
 * Check the existing Issues to see if it has already been reported.
 * If not, open a new Issue with steps to reproduce the bug.
 
-**Contact:**
+## Contact:
 If you need help with the plugin system, reach out on : fnafi_sus
 
 If you have questions specifically about plugin architecture or want to discuss a new feature idea before writing code, feel free to reach out:
