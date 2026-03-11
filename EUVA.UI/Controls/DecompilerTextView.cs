@@ -87,7 +87,6 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
     private uint _cKeyword, _cType, _cVariable, _cNumber, _cString;
     private uint _cFunction, _cOperator, _cPunct, _cComment, _cAddress, _cError, _cSelectionBg;
 
-    public event EventHandler<long>? LineSelected;
     public event EventHandler? RenameApplied;
 
     public DecompilerTextView()
@@ -216,7 +215,6 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
     {
         var lines = new List<PseudocodeLine>(512);
 
-        string retType = "void";
         long funcAddr = layout.Nodes.Length > 0 ? layout.Nodes[0].StartOffset : 0;
         string originalName = $"sub_{funcAddr:X}";
         string funcName = originalName;
