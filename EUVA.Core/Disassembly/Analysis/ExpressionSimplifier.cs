@@ -90,12 +90,14 @@ public static class ExpressionSimplifier
                     ConvertToAssign(instr, right);
                     return true;
 
-                
+                case IrOpcode.Or or IrOpcode.And when left.SameLocation(right) && left.SsaVersion == right.SsaVersion && left.SsaVersion >= 0:
+                    ConvertToAssign(instr, left);
+                    return true;
+
                 case IrOpcode.Xor when rightConst && right.ConstantValue == 0:
                     ConvertToAssign(instr, left);
                     return true;
 
-                
                 case IrOpcode.Xor when left.SameLocation(right) && left.SsaVersion == right.SsaVersion && left.SsaVersion >= 0:
                     ConvertToConst(instr, 0);
                     return true;

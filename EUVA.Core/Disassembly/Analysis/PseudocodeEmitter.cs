@@ -14,6 +14,7 @@ public sealed class PseudocodeEmitter
     private List<VTableDetector.VTableCall> _vtables = new();
     private int _indentLevel;
     private IrBlock? _currentEmitBlock;
+    private IrBlock[]? _blocks;
 
     public PseudocodeEmitter(
         Dictionary<ulong, string>? imports = null,
@@ -29,6 +30,7 @@ public sealed class PseudocodeEmitter
 
     public PseudocodeLine[] Emit(StructuredNode root, IrBlock[] blocks)
     {
+        _blocks = blocks;
         var lines = new List<PseudocodeLine>();
         _indentLevel = 0;
 
@@ -50,6 +52,7 @@ public sealed class PseudocodeEmitter
 
     public PseudocodeLine[] EmitBlock(IrBlock block)
     {
+        _blocks = new[] { block };
         var lines = new List<PseudocodeLine>();
         _indentLevel = 0;
 
@@ -391,29 +394,24 @@ public sealed class PseudocodeEmitter
                 {
                     string dst = FormatOperand(instr.Destination);
                     string src = FormatOperand(instr.Sources[0]);
-                    if (instr.Condition != IrCondition.None && instr.Sources.Length >= 2)
+                    if (instr.Condition != IrCondition.None)
                     {
-                        IrInstruction? condInstr = null;
-                        if (block != null)
-                        {
-                            int idx = block.Instructions.IndexOf(instr);
-                            if (idx < 0) idx = block.Instructions.Count; 
-                            for (int i = idx - 1; i >= 0; i--)
-                            {
-                                var prev = block.Instructions[i];
-                                if (!prev.IsDead && (prev.Opcode == IrOpcode.Cmp || prev.Opcode == IrOpcode.Test))
-                                {
-                                    condInstr = prev;
-                                    break;
-                                }
-                            }
-                        }
+                        IrInstruction? condInstr = instr.ConditionInstr;
 
-                        string cond = FormatCondition(instr.Condition, condInstr);
-                        string val = $"{cond} ? {src} : {FormatOperand(instr.Sources[1])}";
+                        string condStr = FormatCondition(instr.Condition, condInstr);
                         
-                        if (definesDest) return $"{dst} = {val}";
-                        return val;
+                        if (instr.Sources.Length >= 2)
+                        {
+                            string val = $"{condStr} ? {src} : {FormatOperand(instr.Sources[1])}";
+                            if (definesDest) return $"{dst} = {val}";
+                            return val;
+                        }
+                        else
+                        {
+                           
+                            if (definesDest) return $"{dst} = {condStr}";
+                            return condStr;
+                        }
                     }
                     if (definesDest) return $"{dst} = {src}";
                     return src;
@@ -698,7 +696,7 @@ public sealed class PseudocodeEmitter
         return name;
     }
 
-    private static string FormatConstant(long value, byte bitSize)
+    private string FormatConstant(long value, byte bitSize)
     {
         if (value == 0) return "0";
         if (value == 1) return "1";
@@ -723,7 +721,13 @@ public sealed class PseudocodeEmitter
         {
             if (value < 0)
                 return $"(void*)-0x{-value:X}";
-            return $"(void*)0x{value:X}";
+
+            if (_imports != null && _imports.TryGetValue((ulong)value, out var name))
+            {
+                int bang = name.IndexOf('!');
+                return "&" + (bang >= 0 ? name.Substring(bang + 1) : name);
+            }
+            return $"&g_Data_{value:X}";
         }
 
       
@@ -874,21 +878,37 @@ public sealed class PseudocodeEmitter
 
     private string FormatCondition(IrCondition cond, IrInstruction? condInstr)
     {
-        if (condInstr != null && condInstr.Sources.Length >= 2)
+        if (condInstr != null)
         {
-            string left = FormatOperand(condInstr.Sources[0]);
-            string right = FormatOperand(condInstr.Sources[1]);
-            
-            if (condInstr.Opcode == IrOpcode.Test)
+            if (condInstr.Opcode == IrOpcode.Cmp && condInstr.Sources.Length >= 2)
             {
-                string op = cond switch { IrCondition.Equal => "== 0", IrCondition.NotEqual => "!= 0", _ => FormatConditionCode(cond) };
+                string left = FormatOperand(condInstr.Sources[0]);
+                string right = FormatOperand(condInstr.Sources[1]);
+                string normalOp = FormatConditionOperator(cond, false);
+                return $"{left} {normalOp} {right}";
+            }
+            else if (condInstr.Opcode == IrOpcode.Test && condInstr.Sources.Length >= 2)
+            {
+                string left = FormatOperand(condInstr.Sources[0]);
+                string right = FormatOperand(condInstr.Sources[1]);
+                string op = cond switch { IrCondition.Equal => "== 0", IrCondition.NotEqual => "!= 0", IrCondition.Sign => "< 0", IrCondition.NotSign => ">= 0", _ => FormatConditionCode(cond) + " 0" };
                 if (left == right)
                     return $"{left} {op}";
                 return $"({left} & {right}) {op}";
             }
-
-            string normalOp = FormatConditionOperator(cond, false);
-            return $"{left} {normalOp} {right}";
+            else if (condInstr.DefinesDest)
+            {
+                string dst = FormatOperand(condInstr.Destination);
+                string op = cond switch { 
+                    IrCondition.Equal => "== 0", IrCondition.NotEqual => "!= 0", 
+                    IrCondition.SignedLess => "< 0", IrCondition.SignedLessEq => "<= 0", 
+                    IrCondition.SignedGreater => "> 0", IrCondition.SignedGreaterEq => ">= 0", 
+                    IrCondition.Sign => "< 0", IrCondition.NotSign => ">= 0", 
+                    IrCondition.UnsignedAbove => "!= 0", IrCondition.UnsignedBelowEq => "== 0",
+                    _ => FormatConditionCode(cond) + " 0" 
+                };
+                return $"{dst} {op}";
+            }
         }
 
         return FormatConditionCode(cond);

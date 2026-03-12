@@ -83,6 +83,7 @@ public sealed class DecompilationPipeline
         DominatorTree.Build(irBlocks);
         DominanceFrontier.Compute(irBlocks);
         SsaBuilder.Build(irBlocks);
+        PopulateLastCmp(irBlocks);
 
         var ctx = new DecompilerContext(irBlocks, _userRenames, GlobalStructs ?? new(), baseAddress);
         ScriptLoader.Instance.RunScripts(PassStage.PreSsa, ctx);
@@ -113,12 +114,14 @@ public sealed class DecompilationPipeline
             funcName ?? $"sub_{baseAddress:X}");
         RecoverCallArguments(irBlocks);
         PostRecoveryCleanup(irBlocks);
+        RemoveDeadStackStores(irBlocks);
 
-        PopulateLastCmp(irBlocks);
         LastStructuredAst = ControlFlowStructurer.Structure(irBlocks, LastLoops);
         
         ctx.AstRoot = LastStructuredAst;
         ScriptLoader.Instance.RunScripts(PassStage.PostStructuring, ctx);
+
+        IdiomRecognizer.RecognizeIdioms(LastStructuredAst);
 
         var emitter = new PseudocodeEmitter(_imports, _userRenames);
         emitter.SetSignature(LastSignature);
@@ -411,6 +414,58 @@ public sealed class DecompilationPipeline
         }
     }
 
+    private static void RemoveDeadStackStores(IrBlock[] blocks)
+    {
+        var readOffsets = new HashSet<long>();
+        bool readsUnknownStack = false;
+
+        foreach (var block in blocks)
+        {
+            foreach (var instr in block.Instructions)
+            {
+                if (instr.IsDead) continue;
+                if (instr.Opcode == IrOpcode.Load && instr.Sources.Length > 0 && instr.Sources[0].Kind == IrOperandKind.Memory)
+                {
+                    var canon = IrOperand.GetCanonical(instr.Sources[0].MemBase);
+                    if (canon == Register.RSP || canon == Register.RBP)
+                    {
+                        readOffsets.Add(instr.Sources[0].MemIndex == Register.None ? instr.Sources[0].MemDisplacement : long.MinValue);
+                    }
+                    else if (canon == Register.None)
+                    {
+                       
+                    }
+                }
+                else if (instr.Opcode == IrOpcode.Call)
+                {
+                    readsUnknownStack = true;
+                }
+            }
+        }
+
+        if (readsUnknownStack) return; 
+
+        foreach (var block in blocks)
+        {
+            foreach (var instr in block.Instructions)
+            {
+                if (instr.IsDead) continue;
+                if (instr.Opcode == IrOpcode.Store && instr.Destination.Kind == IrOperandKind.Memory)
+                {
+                    var canon = IrOperand.GetCanonical(instr.Destination.MemBase);
+                    if (canon == Register.RSP || canon == Register.RBP)
+                    {
+                        long offset = instr.Destination.MemIndex == Register.None ? instr.Destination.MemDisplacement : long.MinValue;
+                        if (!readOffsets.Contains(offset))
+                        {
+                            instr.IsDead = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private static void OptimizeBlockLocally(IrBlock block)
     {
         var instrs = block.Instructions;
@@ -623,16 +678,59 @@ public sealed class DecompilationPipeline
     {
         foreach (var block in blocks)
         {
-            for (int i = block.Instructions.Count - 1; i >= 0; i--)
+            block.LastCmpInstr = FindLastFlagSetter(blocks, block);
+            foreach (var instr in block.Instructions)
             {
-                var instr = block.Instructions[i];
-                if (!instr.IsDead && (instr.Opcode == IrOpcode.Cmp || instr.Opcode == IrOpcode.Test))
+                if (instr.Condition != IrCondition.None)
                 {
-                    block.LastCmpInstr = instr;
-                    break;
+                    instr.ConditionInstr = FindLastFlagSetter(blocks, block, instr);
                 }
             }
         }
+    }
+
+    public static IrInstruction? FindLastFlagSetter(IrBlock[] blocks, IrBlock startBlock, IrInstruction? startInstr = null)
+    {
+        int startIndex = startBlock.Instructions.Count - 1;
+        if (startInstr != null)
+        {
+            int idx = startBlock.Instructions.IndexOf(startInstr);
+            startIndex = idx >= 0 ? idx - 1 : startIndex;
+        }
+
+        for (int i = startIndex; i >= 0; i--)
+        {
+            var prev = startBlock.Instructions[i];
+            if (prev.IsDead) continue;
+            if (IsFlagSetter(prev.Opcode)) return prev;
+            if (prev.Opcode == IrOpcode.Call) return null;
+        }
+
+        var currBlock = startBlock;
+        var visited = new HashSet<int>();
+        
+        while (currBlock.Predecessors.Count == 1)
+        {
+            int predIdx = currBlock.Predecessors[0];
+            if (!visited.Add(predIdx)) break;
+
+            currBlock = blocks[predIdx];
+            for (int i = currBlock.Instructions.Count - 1; i >= 0; i--)
+            {
+                var prev = currBlock.Instructions[i];
+                if (prev.IsDead) continue;
+                if (IsFlagSetter(prev.Opcode)) return prev;
+                if (prev.Opcode == IrOpcode.Call) return null;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsFlagSetter(IrOpcode opcode)
+    {
+        return opcode is IrOpcode.Cmp or IrOpcode.Test or IrOpcode.Add or IrOpcode.Sub 
+            or IrOpcode.And or IrOpcode.Or or IrOpcode.Xor or IrOpcode.Shl or IrOpcode.Shr or IrOpcode.Sar;
     }
 
     private void RecoverCallArguments(IrBlock[] blocks)

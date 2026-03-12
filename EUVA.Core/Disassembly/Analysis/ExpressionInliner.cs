@@ -9,8 +9,9 @@ public static class ExpressionInliner
     private sealed class DefUseInfo
     {
         public IrInstruction? DefInstr;
+        public IrBlock? DefBlock;
         public int UseCount;
-        public List<IrInstruction> Uses = new();
+        public List<(IrBlock Block, IrInstruction Instr)> Uses = new();
     }
 
     public static int Inline(IrBlock[] blocks)
@@ -35,16 +36,16 @@ public static class ExpressionInliner
                         info[key] = dt;
                     }
                     dt.DefInstr = instr;
+                    dt.DefBlock = block;
                 }
 
-                
-                TrackUsesRecursively(instr, instr, info);
+                TrackUsesRecursively(instr, instr, block, info);
 
                 if (instr.Destination.Kind == IrOperandKind.Memory)
                 {
                     var dst = instr.Destination;
-                    if (dst.MemBase != Register.None) AddUse(dst.MemBase, dst.SsaVersion, instr, info);
-                    if (dst.MemIndex != Register.None) AddUse(dst.MemIndex, dst.SsaVersion, instr, info);
+                    if (dst.MemBase != Register.None) AddUse(dst.MemBase, dst.SsaVersion, instr, block, info);
+                    if (dst.MemIndex != Register.None) AddUse(dst.MemIndex, dst.SsaVersion, instr, block, info);
                 }
             }
         }
@@ -70,23 +71,31 @@ public static class ExpressionInliner
                     continue;
 
                 string key = GetSsaKey(instr.Destination);
-                if (info.TryGetValue(key, out var dt) && dt.UseCount == 1)
+                if (info.TryGetValue(key, out var dt) && dt.UseCount == 1 && dt.DefBlock != null)
                 {
-                    var consumer = dt.Uses[0];
+                    var useEntry = dt.Uses[0];
+                    var consumer = useEntry.Instr;
+                    var consumerBlock = useEntry.Block;
 
-                    
                     if (consumer.Opcode == IrOpcode.Phi)
                         continue;
 
                     bool readsMemory = instr.Opcode == IrOpcode.Load;
-                    bool safeToInline = !readsMemory || IsInSameBlockAndSafe(block, instr, consumer);
+                    bool safeToInline = true;
+
+                    if (readsMemory)
+                    {
+                        safeToInline = IsPathMemorySafe(dt.DefBlock, instr, consumerBlock, consumer, blocks);
+                    }
 
                     if (safeToInline)
                     {
-                        
-                        ReplaceUseWithExpression(consumer, instr);
-                        instr.IsDead = true; 
-                        changes++;
+                        bool replaced = ReplaceUseWithExpression(consumer, instr);
+                        if (replaced)
+                        {
+                            instr.IsDead = true; 
+                            changes++;
+                        }
                     }
                 }
             }
@@ -95,13 +104,13 @@ public static class ExpressionInliner
         return changes;
     }
 
-    private static void TrackUsesRecursively(IrInstruction node, IrInstruction rootConsumer, Dictionary<string, DefUseInfo> info)
+    private static void TrackUsesRecursively(IrInstruction node, IrInstruction rootConsumer, IrBlock consumerBlock, Dictionary<string, DefUseInfo> info)
     {
         foreach (var src in node.Sources)
         {
             if (src.Kind == IrOperandKind.Expression && src.Expression != null)
             {
-                TrackUsesRecursively(src.Expression, rootConsumer, info);
+                TrackUsesRecursively(src.Expression, rootConsumer, consumerBlock, info);
             }
             else if (src.Kind == IrOperandKind.Register || src.Kind == IrOperandKind.StackSlot)
             {
@@ -112,17 +121,17 @@ public static class ExpressionInliner
                     info[key] = dt;
                 }
                 dt.UseCount++;
-                dt.Uses.Add(rootConsumer);
+                dt.Uses.Add((consumerBlock, rootConsumer));
             }
             else if (src.Kind == IrOperandKind.Memory)
             {
-                if (src.MemBase != Register.None) AddUse(src.MemBase, src.SsaVersion, rootConsumer, info);
-                if (src.MemIndex != Register.None) AddUse(src.MemIndex, src.SsaVersion, rootConsumer, info);
+                if (src.MemBase != Register.None) AddUse(src.MemBase, src.SsaVersion, rootConsumer, consumerBlock, info);
+                if (src.MemIndex != Register.None) AddUse(src.MemIndex, src.SsaVersion, rootConsumer, consumerBlock, info);
             }
         }
     }
 
-    private static void AddUse(Register reg, int ssa, IrInstruction consumer, Dictionary<string, DefUseInfo> info)
+    private static void AddUse(Register reg, int ssa, IrInstruction consumer, IrBlock consumerBlock, Dictionary<string, DefUseInfo> info)
     {
         var op = IrOperand.Reg(reg, 64);
         op.SsaVersion = ssa;
@@ -133,52 +142,86 @@ public static class ExpressionInliner
             info[key] = dt;
         }
         dt.UseCount++;
-        dt.Uses.Add(consumer);
+        dt.Uses.Add((consumerBlock, consumer));
     }
 
-    private static void ReplaceUseWithExpression(IrInstruction consumer, IrInstruction exprInstr)
+    private static bool ReplaceUseWithExpression(IrInstruction consumer, IrInstruction exprInstr)
     {
+        bool replaced = false;
+        string defKey = GetSsaKey(exprInstr.Destination);
+
         for (int i = 0; i < consumer.Sources.Length; i++)
         {
             var src = consumer.Sources[i];
 
             if (src.Kind == IrOperandKind.Expression && src.Expression != null)
             {
-                ReplaceUseWithExpression(src.Expression, exprInstr);
+                if (ReplaceUseWithExpression(src.Expression, exprInstr))
+                    replaced = true;
                 continue;
             }
 
-            bool isMatch = false;
-            
-            if (src.Kind == IrOperandKind.Register && exprInstr.Destination.Kind == IrOperandKind.Register)
-                isMatch = src.CanonicalRegister == exprInstr.Destination.CanonicalRegister;
-            else if (src.Kind == IrOperandKind.StackSlot && exprInstr.Destination.Kind == IrOperandKind.StackSlot)
-                isMatch = src.StackOffset == exprInstr.Destination.StackOffset;
-
-            if (isMatch && src.SsaVersion == exprInstr.Destination.SsaVersion)
+            if ((src.Kind == IrOperandKind.Register || src.Kind == IrOperandKind.StackSlot) && GetSsaKey(src) == defKey)
             {
                 consumer.Sources[i] = IrOperand.Expr(exprInstr);
+                replaced = true;
             }
         }
+
+        return replaced;
     }
 
-    private static bool IsInSameBlockAndSafe(IrBlock block, IrInstruction def, IrInstruction use)
+    private static bool IsPathMemorySafe(IrBlock defBlock, IrInstruction defInstr, IrBlock useBlock, IrInstruction useInstr, IrBlock[] allBlocks)
     {
-        int defIdx = block.Instructions.IndexOf(def);
-        int useIdx = block.Instructions.IndexOf(use);
-        
-        if (defIdx == -1 || useIdx == -1) return false; 
-        if (defIdx >= useIdx) return false; 
-
-        
-        for (int i = defIdx + 1; i < useIdx; i++)
+        if (defBlock == useBlock)
         {
-            var instr = block.Instructions[i];
-            if (instr.IsDead) continue;
-            if (instr.HasSideEffects) return false;
+            int defIdx = defBlock.Instructions.IndexOf(defInstr);
+            int useIdx = defBlock.Instructions.IndexOf(useInstr);
+            
+            if (defIdx == -1 || useIdx == -1 || defIdx >= useIdx) return false; 
+            
+            for (int i = defIdx + 1; i < useIdx; i++)
+            {
+                var instr = defBlock.Instructions[i];
+                if (instr.IsDead) continue;
+                if (instr.Opcode == IrOpcode.Store || instr.Opcode == IrOpcode.Call || instr.HasSideEffects) return false;
+            }
+            return true;
         }
 
-        return true;
+        
+        int dIdx = defBlock.Instructions.IndexOf(defInstr);
+        for (int i = dIdx + 1; i < defBlock.Instructions.Count; i++)
+        {
+            var instr = defBlock.Instructions[i];
+            if (instr.IsDead) continue;
+            if (instr.Opcode == IrOpcode.Store || instr.Opcode == IrOpcode.Call || instr.HasSideEffects) return false;
+        }
+
+     
+        int uIdx = useBlock.Instructions.IndexOf(useInstr);
+        for (int i = 0; i < uIdx; i++)
+        {
+            var instr = useBlock.Instructions[i];
+            if (instr.IsDead) continue;
+            if (instr.Opcode == IrOpcode.Store || instr.Opcode == IrOpcode.Call || instr.HasSideEffects) return false;
+        }
+
+       
+        int curr = useBlock.Idom;
+        while (curr >= 0 && curr < allBlocks.Length && curr != defBlock.Index)
+        {
+            var currBlock = allBlocks[curr];
+            foreach(var instr in currBlock.Instructions)
+            {
+                if (instr.IsDead) continue;
+                if (instr.Opcode == IrOpcode.Store || instr.Opcode == IrOpcode.Call || instr.HasSideEffects) return false;
+            }
+            if (curr == currBlock.Idom) break;
+            curr = currBlock.Idom;
+        }
+
+        return curr == defBlock.Index; 
     }
 
     private static string GetSsaKey(IrOperand op)

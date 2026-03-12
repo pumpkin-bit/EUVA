@@ -47,8 +47,8 @@ graph TD
 ### 1.3 Data-Flow Optimization Algorithms
 Directly translated assembly code exhibits extreme redundancy due to stack constraints and calling conventions. A repetitive optimization loop (cascading passes) is employed to reduce entropy:
 * **Copy Propagation:** Identifies contiguous, non-mutating register assignments and structurally collapses them. e.g., `a = b; c = a;` resolves structurally to `c = b;`.
-* **Dead Store Elimination (DSE):** Executes reverse-sweeps of basic blocks to locate and excise volatile memory writes `[base+disp]` that are immediately overwritten without an intervening read operation.
-* **Expression Simplifier & Constant Propagation:** Extrapolates algebraic determinism and collapses variables backed by static immediate values.
+* **Dead Store Elimination (DSE) & Stack Cleanup:** Executes reverse-sweeps of basic blocks to locate and excise volatile memory writes `[base+disp]` that are immediately overwritten without an intervening read operation. Function prologues that establish stack pointers which are never logically consumed are also aggressively pruned.
+* **Expression Simplifier & Constant Propagation:** Extrapolates algebraic determinism and collapses variables backed by static immediate values. Additionally, redundant logical operations (e.g., `rax | rax` or `rax & rax`) are automatically simplified.
 
 ### 1.4 Abstract Syntax Tree (AST) Expression Folding
 Flat IR lists are structurally incompatible with high-level languages like C++. **AST Expression Folding** employs a forward scanning heuristic utilizing SSA `UseCount` properties. Temporary registers possessing an explicit `UseCount == 1` are directly embedded into their destination consumer nodes. Through recursive application within the optimizer pipeline, cascading atomic assignments transform into deeply nested mathematical expressions.
@@ -86,14 +86,23 @@ graph TD
 The semantic meaning of registers is inferred via an advanced, constraint-based **Type Inference Engine** operating on the SSA form, combined with calling convention modeling:
 * **Rich Data Model:** SSA variables utilize a `TypeInfo` structure supporting base primitives `Int8` to `Int64`, `Float`, `Struct`, `Void` combined with recursive `PointerLevel` tracking, allowing accurate representation of complex types e.g., `unsigned char**`.
 * **Worklist-based Constraint Solver:** A Queue-driven algorithm propagates seeded type constraints deduced from memory load/store instruction widths, exact pointer arithmetic, and WinAPI imports iteratively across the data-flow graph.
+* **Bidirectional Propagation:** Type constraints propagate both forward from defined variables to their consumers and backward from strongly-typed destinations pulling type requirements back to their untyped sources.
 * **Phi Node Unification:** When execution paths merge inside $\phi$ nodes, the engine executes type unification, strictly favoring specifically typed pointers over ambiguous untyped memory `void*`.
 * **ABI Parameter Resolution:** Dynamic mapping of `fastcall`/`cdecl` register states into standard sequential function invocations.
 * **VTable Detection:** Heuristics recover dynamic polymorphism patterns, translating opaque indirect function pointers back into Object-Oriented context `this->method()`.
 
-### 1.7 Pseudocode Emission
-The terminal stage executes a forward traversal over the reconstructed AST elements. The **Pseudocode Emitter** formats nodes into strings conforming closely to idiomatic C++ semantics. The emission stage involves backward context scanning for translating native CPU flags into high-level boolean conditionals Condition Propagation, mapping arithmetic combinations to shorthand operators Compound Assignments, and isolating temporary SSA suffixes from final outputs.
+### 1.7 Standard Library Idiom Recognition
+Instead of leaving the user to decode manual byte-by-byte loops the Decompiler features an **Idiom Recognizer** pass that executes over the structured AST.
+* Fast string operations `rep movsb`, `stosd`, `scasb` lifted from IR are natively bypassed during structuring and cleanly mapped to pseudo-calls like `memcpy` `memset`, and `memchr`.
+* The recognizer is capable of collapsing manual `do-while` and `while` loops that match known standard library pointer-arithmetic heuristics, vastly improving readability of memory transfers.
 
-### 1.8 Glass Engine C# Scripting Integration
+### 1.8 Pseudocode Emission
+The terminal stage executes a forward traversal over the reconstructed AST elements. The **Pseudocode Emitter** formats nodes into strings conforming closely to idiomatic C++ semantics. 
+* **Condition Propagation:** Backward scanning natively links raw CPU condition flags from math instructions directly into high-level boolean conditionals `>=` `==`, bypassing raw `flag` outputs.
+* **Global Data Offsets:** Large cryptographic or static constants representing memory addresses e.g. `0x568000` are automatically intercepted and formatted as global virtual addresses `&g_Data_0xXXX` or explicit symbol imports.
+* **Compound Assignments:** Arithmetic combinations map to shorthand operators, isolating temporary SSA suffixes from final outputs
+
+### 1.9 Glass Engine C# Scripting Integration
 The standard data-flow and heuristic passes mentioned above operate universally. However, heavily obfuscated code, custom virtual machines, and anti-analysis tricks often require manual intervention. The **Glass Engine** exposes the EUVA Decompiler pipeline to external, runtime-compiled C# scripts, granting users total programmatic control over the IR, AST, and Type Systems without needing to recompile the decompiler itself.
 
 #### 1.8.1 Theory & Pipeline Hooks

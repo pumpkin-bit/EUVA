@@ -224,9 +224,18 @@ public static class TypeInference
                 
                 if (instr.Destination.Type == TypeInfo.Unknown && instr.Sources.Length > 0)
                 {
-                    var srcType = InferNumericType(instr.Sources[0].BitSize, signed: false);
-                    instr.Destination.Type = new TypeInfo { BaseType = srcType.BaseType != PrimitiveType.Unknown ? srcType.BaseType : PrimitiveType.Void, PointerLevel = 1 };
-                    count++;
+                    var src = instr.Sources[0];
+                    if (src.Type != TypeInfo.Unknown)
+                    {
+                        instr.Destination.Type = new TypeInfo { BaseType = src.Type.BaseType, PointerLevel = (byte)(src.Type.PointerLevel + 1) };
+                        count++;
+                    }
+                    else
+                    {
+                        var srcType = InferNumericType(src.BitSize, signed: false);
+                        instr.Destination.Type = new TypeInfo { BaseType = srcType.BaseType != PrimitiveType.Unknown ? srcType.BaseType : PrimitiveType.Void, PointerLevel = 1 };
+                        count++;
+                    }
                 }
                 break;
 

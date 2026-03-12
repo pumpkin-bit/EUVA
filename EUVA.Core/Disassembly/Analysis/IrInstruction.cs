@@ -9,6 +9,7 @@ public sealed class IrInstruction
     public IrOperand Destination;
     public IrOperand[] Sources = Array.Empty<IrOperand>();
     public IrCondition Condition;
+    public IrInstruction? ConditionInstr;
     public ulong OriginalAddress;
     public byte BitSize = 64;
     public int[]? PhiSourceBlocks;
