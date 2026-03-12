@@ -43,6 +43,7 @@ By using EUVA, you acknowledge that you are solely responsible for your actions,
 - **Byte minimap** Allows you to instantly scan the hex grid of a binary file, simplifying research and instantly identifying where packed code or similar may be located.
 - **Disassembler** An iced-based disassembler will help in analyzing binary files and will present the binary file as readable logic.
 - **Decompiler** Decompile x64, x86 binaries and get pseudocode in C/C++ format
+- **Scripting Decompiler** A C# scripting layer that allows you to write custom decompiler scripts and custom decompilation methods.
 
 ---
 
@@ -63,6 +64,7 @@ To find out how a particular subsystem works, you can read the relevant document
 - [Byte minimap](docs/byteminimap.md)
 - [Disassembler](docs/Disassembler.md)
 - [Decompiler](docs/Decompiler.md)
+- [Scripting Decompiler](docs/Decompiler#18-glass-engine-c-scripting-integration)
 ---
 
 ## Quick Start
@@ -75,6 +77,7 @@ To find out how a particular subsystem works, you can read the relevant document
 - DefenceTechSecurity.Yarax Release 1.0.1-release.yrx1.12.0
 - Iced Disassembler >= 1.21.0
 - Microsoft Msagl >= 1.1.6
+- Microsoft.CodeAnalysis.CSharp (Roslyn) >= 5.3.0
 
 
 ```
@@ -83,14 +86,12 @@ cd EUVA/EUVA.UI
 
 dotnet build -c Release
 dotnet run // optional
-
 ```
 
 **Native AOT version**
 
-Installing and running the executable file from the releases is not required, as Native AOT does not require installing the .NET SDK to use the program.
-
-You can install either the native version from the resilient library or compile it from the source using the JIT compiler.
+> [!WARNING]
+> The tool doesn't deny support for Native AOT, but for user convenience, it includes a Roslyn JIT compiler for writing custom decompilation scripts. However, even if Roslyn doesn't support Native AOT, you can still compile the project into a native version.
 
 ---
 
