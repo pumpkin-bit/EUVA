@@ -61,10 +61,11 @@ To find out how a particular subsystem works, you can read the relevant document
 - [plugin-extensible-detector-pipeline](docs/Detectors.md)
 - [fully-themeable-rendering-layer](docs/Themes.md)
 - [Addition-of-the-Yara-X-rules-engine](docs/EuvaUseYaraX.md)
-- [Byte minimap](docs/byteminimap.md)
+- [Byte-minimap](docs/byteminimap.md)
 - [Disassembler](docs/Disassembler.md)
 - [Decompiler](docs/Decompiler.md)
-- [Scripting Decompiler](docs/Decompiler#19-glass-engine-c-scripting-integration)
+- [Scripting-Decompiler](docs/Decompiler#19-glass-engine-c-scripting-integration)
+- [AI-Agents-Decompiler](docs/Decompiler#20-ai-assisted-semantic-integration)
 ---
 
 ## Quick Start
