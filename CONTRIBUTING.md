@@ -14,7 +14,7 @@ Alternatively, you can contribute to the project's source code (the easiest way)
 
 ### 2. Developing Decompiler Scripts 
 Create unique scripts for various types of binary files. The decompiler API is actively developing. You can contribute to decompilation methods or expand the current scripting API to solve researchers' problems. Your scripts can be accepted into the decompiler and become part of it. The Scripts folder is intended for decompilation scripts. Simply move your .cs script there and see the result.
-How to create scripts is described in [1.8 Glass Engine C# Scripting Integration](docs/Decompiler#18-glass-engine-c-scripting-integration).
+How to create scripts is described in [1.8 Glass Engine C# Scripting Integration](docs/Decompiler.md#18-glass-engine-c-scripting-integration).
 
 ### 2. Pull Requests
 Found a bug or have a feature improvement for the core? 
