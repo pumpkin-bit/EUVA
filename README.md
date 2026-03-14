@@ -116,6 +116,7 @@ dotnet run // optional
 - `View Yara Matches` - `Shift+F3` View matches found by Yara
 - `View Disassembler` - `Ctrl+D` View Disassembler
 - `View Decompiler` - `Ctrl+E` View Decompiler, use `F5` to switch between graphics mode and text mode
+- `Highlight code` - `Ctrl+A` Selecting code in text form in a decompiler
 
 **You can reassign hotkeys by loading (via the settings in the program menu) and editing the .htk file.**
 
