@@ -259,27 +259,27 @@ public class VirtualizedHexView : FrameworkElement
         _colOffset      = ColorToArgb(ThemeColor("HexOffset",            Color.FromRgb(0x6C, 0x70, 0x86))); 
         _colByteActive  = ColorToArgb(ThemeColor("Hex_ByteActive",       Color.FromRgb(0xCD, 0xD6, 0xF4))); 
         _colByteNull    = ColorToArgb(ThemeColor("Hex_ByteNull",         Color.FromRgb(0x45, 0x47, 0x5A))); 
-        _colByteSelected= ColorToArgb(ThemeColor("Hex_ByteSelected",     Color.FromRgb(0x1E, 0x1E, 0x2E))); 
+        _colByteSelected= ColorToArgb(ThemeColor("Hex_ByteSelected",     Color.FromRgb(0x18, 0x18, 0x25))); 
         _colAsciiPrintable = ColorToArgb(ThemeColor("Hex_AsciiPrintable",Color.FromRgb(0xA6, 0xE3, 0xA1))); 
         _colAsciiNonPrint  = ColorToArgb(ThemeColor("Hex_AsciiNonPrintable", Color.FromRgb(0x45, 0x47, 0x5A))); 
         _colColumnHeader = ColorToArgb(ThemeColor("Hex_ColumnHeader",    Color.FromRgb(0x6C, 0x70, 0x86))); 
-        _colAsciiExt    = ColorToArgb(Color.FromRgb(0x94, 0xE2, 0xD5));  
+        _colAsciiExt    = ColorToArgb(ThemeColor("Hex_AsciiExt",         Color.FromRgb(0x94, 0xE2, 0xD5)));  
         _colSelectionBg = ColorToArgb(ThemeColor("Hex_SelectionBg",      Color.FromArgb(0x70, 0x89, 0xB4, 0xFA))); 
-        _colModifiedBg  = ColorToArgb(Color.FromArgb(0x80, 0xF3, 0x8B, 0xA8)); 
-        _colYaraHit     = ColorToArgb(Color.FromArgb(0x80, 0xF9, 0xE2, 0xAF)); 
+        _colModifiedBg  = ColorToArgb(ThemeColor("Hex_ModifiedBg",       Color.FromArgb(0x80, 0xF3, 0x8B, 0xA8))); 
+        _colYaraHit     = ColorToArgb(ThemeColor("Hex_YaraHit",          Color.FromArgb(0x80, 0xF9, 0xE2, 0xAF))); 
         
         _colHeaderBg    = ColorToArgb(ThemeColor("Hex_HeaderBackground", Color.FromRgb(0x18, 0x18, 0x25))); 
         _colAltGroup    = ColorToArgb(ThemeColor("Hex_AltGroup",         Color.FromArgb(0x12, 0xCD, 0xD6, 0xF4))); 
         _colSeparator   = ColorToArgb(ThemeColor("Hex_Separator",        Color.FromRgb(0x31, 0x32, 0x44))); 
         _colCursorBg    = ColorToArgb(ThemeColor("Hex_CursorBackground", Color.FromRgb(0x89, 0xB4, 0xFA))); 
 
-        _colByteFF         = ColorToArgb(Color.FromRgb(0x85, 0x8A, 0xA0)); 
-        _colByteControl    = ColorToArgb(Color.FromRgb(0xC8, 0x78, 0x82)); 
-        _colByteWhitespace = ColorToArgb(Color.FromRgb(0xBB, 0xAC, 0x65)); 
-        _colByteDigit      = ColorToArgb(Color.FromRgb(0x72, 0xD0, 0xC6)); 
-        _colByteAlpha      = ColorToArgb(Color.FromRgb(0x7A, 0xAA, 0xF0)); 
-        _colByteSymbol     = ColorToArgb(Color.FromRgb(0xB4, 0xB8, 0xD8)); 
-        _colByteHigh       = ColorToArgb(Color.FromRgb(0xB4, 0x96, 0xE8)); 
+        _colByteFF         = ColorToArgb(ThemeColor("Hex_ByteFF",         Color.FromRgb(0x85, 0x8A, 0xA0))); 
+        _colByteControl    = ColorToArgb(ThemeColor("Hex_ByteControl",    Color.FromRgb(0xC8, 0x78, 0x82))); 
+        _colByteWhitespace = ColorToArgb(ThemeColor("Hex_ByteWhitespace", Color.FromRgb(0xBB, 0xAC, 0x65))); 
+        _colByteDigit      = ColorToArgb(ThemeColor("Hex_ByteDigit",      Color.FromRgb(0x72, 0xD0, 0xC6))); 
+        _colByteAlpha      = ColorToArgb(ThemeColor("Hex_ByteAlpha",      Color.FromRgb(0x7A, 0xAA, 0xF0))); 
+        _colByteSymbol     = ColorToArgb(ThemeColor("Hex_ByteSymbol",     Color.FromRgb(0xB4, 0xB8, 0xD8))); 
+        _colByteHigh       = ColorToArgb(ThemeColor("Hex_ByteHigh",       Color.FromRgb(0xB4, 0x96, 0xE8))); 
 
         RebuildGlyphCache();
         RequestFullRedraw();
@@ -360,7 +360,7 @@ public class VirtualizedHexView : FrameworkElement
         if (_bitmap == null || _bitmapWidth == 0)
         {
             dc.DrawRectangle(
-                new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x2E)),
+                new SolidColorBrush(ThemeColor("Hex_Background", Color.FromRgb(0x1E, 0x1E, 0x2E))),
                 null, new Rect(0, 0, ActualWidth, ActualHeight));
             return;
         }

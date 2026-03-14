@@ -22,45 +22,45 @@ public sealed class ThemeManager
     public static readonly IReadOnlyDictionary<string, (byte R, byte G, byte B, byte A)> DefaultTheme =
         new Dictionary<string, (byte, byte, byte, byte)>(StringComparer.Ordinal)
         {
+           
+            { "Background",             ( 30,  30,  46, 255) }, 
+            { "Sidebar",                ( 24,  24,  37, 255) }, 
+            { "Toolbar",                ( 30,  30,  46, 255) }, 
+            { "Border",                 ( 49,  50,  68, 255) }, 
+            { "SeparatorLine",          ( 69,  71,  90, 255) }, 
             
-            { "Background",             ( 30,  30,  30, 255) },
-            { "Sidebar",                ( 37,  37,  38, 255) },
-            { "Toolbar",                ( 45,  45,  48, 255) },
-            { "Border",                 ( 62,  62,  66, 255) },
-            { "SeparatorLine",          ( 62,  62,  66, 255) },
+            { "MenuBackground",         ( 30,  30,  46, 255) }, 
+            { "MenuForeground",         (205, 214, 244, 255) }, 
+            { "MenuHighlight",          ( 49,  50,  68, 255) }, 
             
-            { "MenuBackground",         ( 45,  45,  48, 255) },
-            { "MenuForeground",         (220, 220, 220, 255) },
-            { "MenuHighlight",          ( 62,  62,  66, 255) },
+            { "ForegroundPrimary",      (205, 214, 244, 255) }, 
+            { "ForegroundSecondary",    (166, 173, 200, 255) }, 
+            { "ForegroundDisabled",     (108, 112, 134, 255) }, 
             
-            { "ForegroundPrimary",      (220, 220, 220, 255) },
-            { "ForegroundSecondary",    (153, 153, 153, 255) },
-            { "ForegroundDisabled",     (100, 100, 100, 255) },
+            { "Hex_Background",         ( 30,  30,  46, 255) }, 
+            { "Hex_OffsetForeground",   (108, 112, 134, 255) }, 
+            { "HexOffset",              (108, 112, 134, 255) }, 
+            { "Hex_ByteActive",         (205, 214, 244, 255) }, 
+            { "Hex_ByteNull",           ( 69,  71,  90, 255) }, 
+            { "Hex_ByteSelected",       ( 30,  30,  46, 255) }, 
+            { "Hex_ByteHighlight",      (203, 166, 247,  96) }, 
+            { "Hex_AsciiPrintable",     (166, 227, 161, 255) }, 
+            { "Hex_AsciiNonPrintable",  ( 69,  71,  90, 255) }, 
             
-            { "Hex_Background",         ( 30,  30,  30, 255) },
-            { "Hex_OffsetForeground",   (160, 160, 160, 255) },
-            { "HexOffset",              (160, 160, 160, 255) },
-            { "Hex_ByteActive",         (173, 216, 230, 255) },
-            { "Hex_ByteNull",           ( 80,  80,  80, 255) },
-            { "Hex_ByteSelected",       (255, 255,   0, 255) },
-            { "Hex_ByteHighlight",      ( 78, 201, 176,  80) },
-            { "Hex_AsciiPrintable",     (144, 238, 144, 255) },
-            { "Hex_AsciiNonPrintable",  (100, 100, 100, 255) },
+            { "TreeBackground",         ( 24,  24,  37, 255) }, 
+            { "TreeText",               (205, 214, 244, 255) }, 
+            { "TreeItemHighlight",      ( 49,  50,  68, 200) }, 
+            { "TreeIconSection",        (137, 180, 250, 255) }, 
+            { "TreeIconField",          (148, 226, 213, 255) }, 
             
-            { "TreeBackground",         ( 37,  37,  38, 255) },
-            { "TreeText",               (220, 220, 220, 255) },
-            { "TreeItemHighlight",      ( 62,  62,  66, 200) },
-            { "TreeIconSection",        ( 86, 156, 214, 255) },
-            { "TreeIconField",          ( 78, 201, 176, 255) },
+            { "PropertyBackground",     ( 24,  24,  37, 255) }, 
+            { "PropertyKey",            (180, 190, 254, 255) }, 
+            { "PropertyValue",          (250, 179, 135, 255) }, 
             
-            { "PropertyBackground",     ( 45,  45,  48, 255) },
-            { "PropertyKey",            (156, 220, 254, 255) },
-            { "PropertyValue",          (206, 145, 120, 255) },
-            
-            { "ConsoleBackground",      ( 30,  30,  30, 255) },
-            { "ConsoleForeground",      (220, 220, 220, 255) },
-            { "ConsoleError",           (244,  71,  71, 255) },
-            { "ConsoleSuccess",         (106, 153,  85, 255) },
+            { "ConsoleBackground",      ( 24,  24,  37, 255) },
+            { "ConsoleForeground",      (205, 214, 244, 255) }, 
+            { "ConsoleError",           (243, 139, 168, 255) }, 
+            { "ConsoleSuccess",         (166, 227, 161, 255) }, 
         };
 
 

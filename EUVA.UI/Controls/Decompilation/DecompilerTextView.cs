@@ -332,24 +332,35 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
     
     private void InitColors()
     {
-        _cBg          = C(Color.FromRgb(0x1E, 0x1E, 0x2E)); 
-        _cText        = C(Color.FromRgb(0xCD, 0xD6, 0xF4));
-        _cLineNum     = C(Color.FromRgb(0x58, 0x5B, 0x70));
-        _cBlockHeader = C(Color.FromRgb(0x45, 0x47, 0x5A));
-        _cCursorLine  = C(Color.FromRgb(0x31, 0x32, 0x44)); 
-        _cKeyword     = C(Color.FromRgb(0xCB, 0xA6, 0xF7)); 
-        _cType        = C(Color.FromRgb(0x89, 0xB4, 0xFA)); 
-        _cVariable    = C(Color.FromRgb(0xF5, 0xC2, 0xE7)); 
-        _cVariableAi  = C(Color.FromRgb(0xCB, 0xA6, 0xF7)); 
-        _cNumber      = C(Color.FromRgb(0xFA, 0xB3, 0x87)); 
-        _cString      = C(Color.FromRgb(0xA6, 0xE3, 0xA1)); 
-        _cFunction    = C(Color.FromRgb(0x89, 0xDC, 0xEB)); 
-        _cOperator    = C(Color.FromRgb(0x94, 0xE2, 0xD5)); 
-        _cPunct       = C(Color.FromRgb(0x6C, 0x70, 0x86)); 
-        _cComment     = C(Color.FromRgb(0x63, 0x66, 0x79)); 
-        _cAddress     = C(Color.FromRgb(0xF3, 0x8B, 0xA8)); 
-        _cError       = C(Color.FromRgb(0xF3, 0x8B, 0xA8)); 
-        _cSelectionBg = C(Color.FromRgb(0x45, 0x47, 0x5A)); 
+        _cBg          = T("Background",        Color.FromRgb(0x1E, 0x1E, 0x2E)); 
+        _cText        = T("ForegroundPrimary", Color.FromRgb(0xCD, 0xD6, 0xF4));
+        _cLineNum     = T("ForegroundDisabled",Color.FromRgb(0x58, 0x5B, 0x70));
+        _cBlockHeader = T("SeparatorLine",      Color.FromRgb(0x45, 0x47, 0x5A));
+        _cCursorLine  = T("MenuHighlight",      Color.FromRgb(0x31, 0x32, 0x44)); 
+        _cKeyword     = T("Accent",             Color.FromRgb(0x89, 0xB4, 0xFA)); 
+        _cType        = T("PropertyKey",        Color.FromRgb(0xB4, 0xBE, 0xFE)); 
+        _cVariable    = T("Hex_ByteSymbol",     Color.FromRgb(0xF5, 0xC2, 0xE7)); 
+        _cVariableAi  = T("Hex_ByteHigh",       Color.FromRgb(0xCB, 0xA6, 0xF7)); 
+        _cNumber      = T("PropertyValue",      Color.FromRgb(0xFA, 0xB3, 0x87)); 
+        _cString      = T("Hex_AsciiPrintable", Color.FromRgb(0xA6, 0xE3, 0xA1)); 
+        _cFunction    = T("StatusBarAccent",    Color.FromRgb(0x89, 0xB4, 0xFA)); 
+        _cOperator    = T("TreeIconField",      Color.FromRgb(0x94, 0xE2, 0xD5)); 
+        _cPunct       = T("HexOffset",          Color.FromRgb(0x6C, 0x70, 0x86)); 
+        _cComment     = T("ForegroundDisabled", Color.FromRgb(0x6C, 0x70, 0x86)); 
+        _cAddress     = T("ConsoleError",       Color.FromRgb(0xF3, 0x8B, 0xA8)); 
+        _cError       = T("ConsoleError",       Color.FromRgb(0xF3, 0x8B, 0xA8)); 
+        _cSelectionBg = T("Surface1",           Color.FromRgb(0x45, 0x47, 0x5A)); 
+    }
+
+    private static uint T(string key, Color fallback)
+    {
+        var res = Application.Current?.TryFindResource(key);
+        Color c;
+        if (res is SolidColorBrush scb) c = scb.Color;
+        else if (res is Color col) c = col;
+        else c = fallback;
+
+        return 0xFF000000 | ((uint)c.R << 16) | ((uint)c.G << 8) | c.B;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -667,7 +678,7 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
         var dlg = new Window
         {
             Title = "Rename Variable", Width = 350, Height = 130, WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x2E)), ResizeMode = ResizeMode.NoResize
+            Background = (Brush)Application.Current.FindResource("Background"), ResizeMode = ResizeMode.NoResize
         };
         var sp = new StackPanel { Margin = new Thickness(10) };
         sp.Children.Add(new TextBlock { Text = $"Rename '{varName}' to:", Foreground = Brushes.White, Margin = new Thickness(0,0,0,5) });
@@ -698,7 +709,7 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
         var dlg = new Window
         {
             Title = "Line Comment", Width = 400, Height = 130, WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x2E)), ResizeMode = ResizeMode.NoResize
+            Background = (Brush)Application.Current.FindResource("Background"), ResizeMode = ResizeMode.NoResize
         };
         var sp = new StackPanel { Margin = new Thickness(10) };
         sp.Children.Add(new TextBlock { Text = existing != null ? "Edit comment:" : "Add comment:", Foreground = Brushes.White, Margin = new Thickness(0,0,0,5) });
@@ -749,10 +760,20 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
         }
         if (refs.Count == 0) return;
 
-        var dlg = new Window { Title = $"Xrefs to '{symbol}'", Width = 550, Height = 350, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x2E)) };
-        var listBox = new ListBox { Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x2E)), Foreground = new SolidColorBrush(Color.FromRgb(0xCD, 0xD6, 0xF4)), FontFamily = new FontFamily("Consolas"), FontSize = 12, BorderThickness = new Thickness(0) };
+        var dlg = new Window { Title = $"Xrefs to '{symbol}'", Width = 550, Height = 350, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = (Brush)Application.Current.FindResource("Background") };
+        var listBox = new ListBox 
+        { 
+            Background = (Brush)Application.Current.FindResource("Background"), 
+            Foreground = (Brush)Application.Current.FindResource("ForegroundPrimary"), 
+            FontFamily = new FontFamily("Consolas"), FontSize = 12, BorderThickness = new Thickness(0) 
+        };
 
-        foreach (var r in refs) listBox.Items.Add(new ListBoxItem { Content = r.Preview, Tag = r.LineIdx, Foreground = new SolidColorBrush(Color.FromRgb(0xCD, 0xD6, 0xF4)), FontFamily = new FontFamily("Consolas") });
+        foreach (var r in refs) listBox.Items.Add(new ListBoxItem 
+        { 
+            Content = r.Preview, Tag = r.LineIdx, 
+            Foreground = (Brush)Application.Current.FindResource("ForegroundPrimary"), 
+            FontFamily = new FontFamily("Consolas") 
+        });
 
         void Jump() { if (listBox.SelectedItem is ListBoxItem sel && sel.Tag is int targetLine) { _cursorLine = targetLine; _scrollLine = Math.Max(0, targetLine - 5); Redraw(); dlg.Close(); } }
         listBox.MouseDoubleClick += (_, _) => Jump();
