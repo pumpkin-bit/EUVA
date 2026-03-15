@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="./screen/final_logo.png" width="578" alt="EUVA Logo">
+  <img src="./screen/final_logo.png" 
+       width="578" 
+       style="image-rendering: pixelated; image-rendering: crisp-edges;" 
+       alt="EUVA IDE Logo">
 </p>
 
 ## 🌌 EUVA IDE
