@@ -59,7 +59,7 @@ Experience binary data at its most primal level with a hardware-accelerated rend
 - **Dirty Tracking**: Optimized for security researchers with lock-free snapshot isolation for real-time change visualization.
 
 <p align="center">
-  <img src="./screen/screen_003.png" alt="EUVA Hex Editor Showcase">
+  <img src="./screen/screen_003.png" width="100%" alt="EUVA Hex Editor Showcase">
   <br>
   <em>Buttery smooth scrolling and instant data lookup at native DPI.</em>
 </p>
@@ -74,7 +74,7 @@ The heart of EUVA. A multi-stage, industrial-grade pipeline that elevates raw ma
 - **Glass Engine C# Scripting**: Total programmatic control over the decompilation pipeline via runtime-compiled C# scripts for handling obfuscation.
 
 <p align="center">
-  <img src="./screen/screen_001.png" alt="EUVA Decompiler Engine Showcase">
+  <img src="./screen/screen_001.png" width="100%" alt="EUVA Decompiler Engine Showcase">
 </p>
 
 ### 3. 🔍 Advanced Disassembly
@@ -111,7 +111,7 @@ Bridge the gap between **Logic** and **Semantics**. Our experimental AI layer he
 ---
 
 <p align="center">
-  <img src="./screen/screen_002.png" alt="EUVA Decompiler Engine Placeholder">
+  <img src="./screen/screen_002.png" width="100%" alt="EUVA Decompiler Engine Placeholder">
 </p>
 
 ---
