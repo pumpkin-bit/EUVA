@@ -51,7 +51,7 @@ Experience binary data at its most primal level with a hardware-accelerated rend
 - **Hardware Acceleration**: Built on a custom `WriteableBitmap` engine that performs manual pixel-array manipulation before a single-step blit to video memory.
 - **Zero-Latency Scrolling**: Scales effortlessly to multi-gigabyte binaries via **Memory-Mapped Files (MMF)**, ensuring raw data is never loaded fully into the heap.
 - **PE Semantic Tree**: Automatically decomposes raw bytes into a navigable hierarchy, mapping specific fields to virtual addresses for instant lookup.
-- **Inline x86 Assembler**: An engine for replacing bytes and writing scripts for automatic changes
+- **DSL-language**: An language for replacing bytes and writing scripts for automatic changes
 - **YARA-X Integration**: Industrial-grade signature matching with windowed processing (16MB chunks) and deduplicated rule-name referencing for minimal RAM impact.
 - **Live Script Watcher**: Real-time patching via `.euv` scripts with a specialized cooldown mechanism to prevent file-lock conflicts during development.
 - **GlyphCache Subsystem**: Pre-rasterizes UI symbols into high-speed memory buffers, eliminating font-rendering overhead during rapid navigation.
