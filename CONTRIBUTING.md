@@ -16,13 +16,30 @@ Alternatively, you can contribute to the project's source code (the easiest way)
 Create unique scripts for various types of binary files. The decompiler API is actively developing. You can contribute to decompilation methods or expand the current scripting API to solve researchers' problems. Your scripts can be accepted into the decompiler and become part of it. The Scripts folder is intended for decompilation scripts. Simply move your .cs script there and see the result.
 How to create scripts is described in [1.9 Glass Engine C# Scripting Integration](docs/Decompiler.md#19-glass-engine-c-scripting-integration).
 
-### 2. Pull Requests
+### 3. Sharing Patching Scripts (.euv)
+EUVA is an open platform for security research. We use a decentralized approach for sharing `.euv` scripts via the [EUVA-Library](https://github.com/pumpkin-bit/EUVA-Library) repository.
+
+**Submission Process:**
+1.  **Create a Gist**: Create a [GitHub Gist](https://gist.github.com/) containing your `.euv` script. 
+2.  **Submit a PR to EUVA-Library**: Open a Pull Request in the `EUVA-Library` repository.
+3.  **PR Content**: Your PR must include a link to your Gist and a brief explanation of the technical problem the script solves.
+4.  **Review**: Scripts will be reviewed based on the Ethical Code below.
+
+⚖️ **Code of Ethics and Submission Rules**
+We are researchers, not malicious actors. To maintain community standards and protect the project, all submissions must strictly follow these rules:
+
+*   **Educational Purpose Only**: Scripts must be intended for studying algorithms, data unpacking, or security analysis.
+*   **No Piracy**: Submissions involving license bypass DRM, key generation, or data theft will be immediately rejected and banned.
+*   **Safety**: Scripts must not inject malicious code shellcodes, backdoors, etc.
+
+
+### 4. Pull Requests
 Found a bug or have a feature improvement for the core? 
 1. Fork the repository.
 2. Create a new branch for your feature or bugfix.
 3. Submit a Pull Request with a clear description of your changes.
 
-### 3. Reporting Issues
+### 5. Reporting Issues
 If you found a bug or have a suggestion:
 * Check the existing Issues to see if it has already been reported.
 * If not, open a new Issue with steps to reproduce the bug.
