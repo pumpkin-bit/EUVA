@@ -134,6 +134,7 @@ Bridge the gap between **Logic** and **Semantics**. Our experimental AI layer he
 - **Decompiler** Decompile x64, x86 binaries and get pseudocode in C/C++ format
 - **Scripting Decompiler** A C# scripting layer that allows you to write custom decompiler scripts and custom decompilation methods.
 - **AI Agents Decompiler** Bring your own API key Cloud or Local via Ollama to instantly restore human-readable variable names and code semantics without UI freezes.
+- **AI-Explain** Now AI can roughly explain decompiled code to you, giving you answers as high-quality as possible. (Experimental feat)
 
 
 ---
