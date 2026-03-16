@@ -17,12 +17,42 @@ Key technical objectives include:
 Structural blocks are defined by indentation level standard 4 spaces or a single tab. Colon `:` terminators are required for `if` and `else` statements.
 
 ### 2.2 Comments
-Hash-style `#` comments are supported for single-line annotations. Inline comments are permitted after statement code.
+Hash-style (`#`) comments are supported for single-line annotations. Inline comments are permitted after statement code.
 
 ### 2.3 Variables and Types
 - **Variables**: Identifiers are assigned via the `=` operator.
 - **Numerics**: Supports decimal and hexadecimal integers prefixed with `0x`.
 - **Strings**: ASCII and UTF-8 string literals are supported for memory writing.
+
+### 2.4 Expressions and Operators
+The EUVA DSL supports rich expressions for conditional logic and address arithmetic.
+
+#### Mathematical Operators
+Used for address calculation and variable manipulation.
+- `+` Addition: Calculates offsets. Example: `offset(base, 0x10 + 4)`
+- `-` Subtraction: Calculates relative distances. Example: `read_byte(addr - 1)`
+
+#### Comparison Operators
+Used primarily within `if` statements. These operators return `1` True or `0` False
+- `==` Equal: Checks for exact equality
+- `!=` Not Equal: Checks for inequality.
+- `>`  Greater Than: True if left operand is strictly greater than right
+- `<`  Less Than: True if left operand is strictly less than right.
+- `>=` Greater or Equal: True if left is greater than or equal to right.
+- `<=` Less or Equal: True if left is less than or equal to right.
+
+##### Example Usage:
+```python
+if pe_offset > 0x100:
+    log("High offset detected")
+
+if read_byte(addr) == 0x90:
+    log("Address already NOPed")
+```
+
+#### String Operations
+- **Concatenation**: The `+` operator can be used within the `log()` function to join strings and variable values.
+  - Example: `log("Address: " + addr)` -> Output: `[Script] Address: 80`
 
 ## 3. Core Function Reference
 
