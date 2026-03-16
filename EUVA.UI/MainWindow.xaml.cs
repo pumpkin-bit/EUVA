@@ -1000,7 +1000,7 @@ catch (Exception iatEx)
 
             if (_variables.TryGetValue(expr, out long varVal)) return varVal;
 
-            if (expr.Contains("+") || expr.Contains("-"))
+            if (expr.Contains("+") || expr.Contains("-") || expr.Contains(">") || expr.Contains("<") || expr.Contains("==") || expr.Contains("!="))
             {
                 return _parent.EvaluateMathExpression(expr, _variables);
             }
@@ -1136,10 +1136,54 @@ catch (Exception iatEx)
                     return labelAddr;
 
                 case "log":
-                    string msg = args.Count > 0 ? args[0].Trim('\"') : "";
-                    if (args.Count > 0 && !args[0].StartsWith("\""))
-                        msg = EvaluateExpression(args[0]).ToString("X");
-                    _parent.SafeLogThreadSafe($"[Script] {msg}", Brushes.White);
+                    if (args.Count == 0) return 0;
+                    string logInput = args[0];
+                    string logResult = "";
+                    
+                    int currentPos = 0;
+                    while (currentPos < logInput.Length)
+                    {
+                        while (currentPos < logInput.Length && char.IsWhiteSpace(logInput[currentPos])) currentPos++;
+                        if (currentPos >= logInput.Length) break;
+
+                        if (logInput[currentPos] == '\"')
+                        {
+                            int endQuote = logInput.IndexOf('\"', currentPos + 1);
+                            if (endQuote != -1)
+                            {
+                                logResult += logInput.Substring(currentPos + 1, endQuote - currentPos - 1);
+                                currentPos = endQuote + 1;
+                            }
+                            else
+                            {
+                                logResult += logInput.Substring(currentPos + 1);
+                                currentPos = logInput.Length;
+                            }
+                        }
+                        else
+                        {
+                            int nextPlus = -1;
+                            bool insideInnerQuotes = false;
+                            for (int i = currentPos; i < logInput.Length; i++)
+                            {
+                                if (logInput[i] == '\"') insideInnerQuotes = !insideInnerQuotes;
+                                if (!insideInnerQuotes && logInput[i] == '+')
+                                {
+                                    nextPlus = i;
+                                    break;
+                                }
+                            }
+
+                            string token = (nextPlus == -1) ? logInput.Substring(currentPos) : logInput.Substring(currentPos, nextPlus - currentPos);
+                            logResult += EvaluateExpression(token.Trim()).ToString("X");
+                            currentPos = (nextPlus == -1) ? logInput.Length : nextPlus;
+                        }
+
+                        while (currentPos < logInput.Length && char.IsWhiteSpace(logInput[currentPos])) currentPos++;
+                        if (currentPos < logInput.Length && logInput[currentPos] == '+') currentPos++;
+                    }
+
+                    _parent.SafeLogThreadSafe($"[Script] {logResult}", Brushes.White);
                     return 1;
 
                 default:
@@ -1174,27 +1218,48 @@ catch (Exception iatEx)
 
     private long EvaluateMathExpression(string expr, Dictionary<string, long> variables)
     {
-        
         try
         {
-            var parts = expr.Split(new[] { '+', '-' }, 2);
-            if (parts.Length == 1) return 0;
+            string op = "";
+            if (expr.Contains("==")) op = "==";
+            else if (expr.Contains("!=")) op = "!=";
+            else if (expr.Contains(">=")) op = ">=";
+            else if (expr.Contains("<=")) op = "<=";
+            else if (expr.Contains(">")) op = ">";
+            else if (expr.Contains("<")) op = "<";
+            else if (expr.Contains("+")) op = "+";
+            else if (expr.Contains("-")) op = "-";
 
-            long left = 0;
-            string lPart = parts[0].Trim();
-            if (variables.TryGetValue(lPart, out long lv)) left = lv;
-            else if (lPart.StartsWith("0x")) left = long.Parse(lPart.Substring(2), System.Globalization.NumberStyles.HexNumber);
-            else long.TryParse(lPart, out left);
+            if (string.IsNullOrEmpty(op)) return 0;
 
-            long right = 0;
-            string rPart = parts[1].Trim();
-            if (variables.TryGetValue(rPart, out long rv)) right = rv;
-            else if (rPart.StartsWith("0x")) right = long.Parse(rPart.Substring(2), System.Globalization.NumberStyles.HexNumber);
-            else long.TryParse(rPart, out right);
+            var parts = expr.Split(new[] { op }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2) return 0;
 
-            return expr.Contains("+") ? left + right : left - right;
+            long left = ParseValue(parts[0].Trim(), variables);
+            long right = ParseValue(parts[1].Trim(), variables);
+
+            switch (op)
+            {
+                case "+": return left + right;
+                case "-": return left - right;
+                case ">": return left > right ? 1 : 0;
+                case "<": return left < right ? 1 : 0;
+                case ">=": return left >= right ? 1 : 0;
+                case "<=": return left <= right ? 1 : 0;
+                case "==": return left == right ? 1 : 0;
+                case "!=": return left != right ? 1 : 0;
+                default: return 0;
+            }
         }
         catch { return 0; }
+    }
+
+    private long ParseValue(string p, Dictionary<string, long> variables)
+    {
+        if (variables.TryGetValue(p, out long v)) return v;
+        if (p.StartsWith("0x")) return long.Parse(p.Substring(2), System.Globalization.NumberStyles.HexNumber);
+        if (long.TryParse(p, out long l)) return l;
+        return 0;
     }
     private static byte[] ParseBytes(string s) => ParseBytes(s.AsSpan());
     private static byte[] ParseBytes(ReadOnlySpan<char> input)
