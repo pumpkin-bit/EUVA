@@ -124,7 +124,7 @@ Bridge the gap between **Logic** and **Semantics**. Our experimental AI layer he
 - **Dirty Tracking system** with lock-free snapshot reads for zero-latency change visualization
 - **Transactional Undo system** both step-by-step (`Ctrl+Z`) and full-session rollback (`Ctrl+Shift+Z`)
 - **structured PE decomposition layer** that turns raw bytes into a navigable semantic tree
-- **built-in x86 assembler** that compiles instructions to opcodes inline with automatic relative offset resolution
+- **DSL-language** A standalone language for replacing bytes in a hex editor with Python-like syntax.
 - **scriptable patching DSL** (`.euv` format) with live file-watch execution
 - **plugin-extensible detector pipeline** for packer/protector identification
 - **fully themeable rendering layer** with persistent theme state across sessions
@@ -180,20 +180,6 @@ dotnet run -c Release
 > When using the **Glass Engine** (C# scripting), ensure the `Scripts/` folder contains valid `.cs` implementations to avoid pipeline startup latency.
 
 
-<!-- ## 🚀 Quick Start
-
-### Installation
-```
-git clone https://github.com/pumpkin-bit/EUVA.git
-cd EUVA/EUVA.UI
-
-dotnet build -c Release
-dotnet run // optional
-```
-
-> [!WARNING]
-> When using internal scripts (Glass Engine), ensure the `Scripts/` folder is populated with valid `.cs` implementations to avoid pipeline startup latency. -->
-
 ---
 
 ## 📚 Documentation & Depth
@@ -206,7 +192,7 @@ Dive deeper into the theory and mechanics:
 - 📖 [Dirty-Tracking-System](docs/DirtyTrackingAndSnapshot.md)
 - 📖 [Transactional-Undo-system](docs/UndoSystem.md)
 - 📖 [Structured-PE-decomposition-layer](docs/PESemanticTree.md)
-- 📖 [built-in-x86-assembler](docs/Asmlogic.md)
+- 📖 [DSL-language](docs/DSL.md)
 - 📖 [scriptable-patching-DSL](docs/EuvFIleWatch.md)
 - 📖 [plugin-extensible-detector-pipeline](docs/Detectors.md)
 - 📖 [fully-themeable-rendering-layer](docs/Themes.md)

@@ -1,16 +1,11 @@
-start;
+dos_msg = find("54 68 69 73 20 70 72 6F 67 72 61 6D")
 
-public:
-_createMethod(ComplexTest)
-{
-    find(myFunc = 55 8B EC)
-
-    myFunc: mov eax, 1
-    myFunc + 5: ret
-    set(header = 0x0)
+if dos_msg:
+    log("dos stub found starting transformation...")
+    fill(dos_msg, 38, 0x20)
+    write_string(dos_msg, "script loaded")
+    nop(offset(dos_msg, 30), 4)
     
-    header: "NO"
-    header + 0x10: DE AD BE EF
-}
-
-end;
+    log("Patch successfully applied dos header modified!")
+else:
+    log("Signature mismatch dos message not found.")
