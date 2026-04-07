@@ -1008,13 +1008,14 @@ public partial class MainWindow
 
     
 
-    private void AnalyzeFunction(long fileOffset, long targetXref = -1)
+    private async void AnalyzeFunction(long fileOffset, long targetXref = -1)
     {
         _currentFunctionOffset = fileOffset;
         if (_decompGraphView == null || HexView.FileLength == 0) return;
 
         try
         {
+            LayoutResult result;
             unsafe
             {
                 var mmf = HexView.GetMemoryMappedFile();
@@ -1025,28 +1026,38 @@ public partial class MainWindow
                 acc.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
                 try
                 {
-                    
                     var length = HexView.FileLength - fileOffset;
                     if (length <= 0) return;
 
                     var maxLen = (int)Math.Min(16384, length);
                     if (maxLen <= 0) return;
 
-                    var result = _decompEngine.BuildFunctionGraph(
+                    result = _decompEngine.BuildFunctionGraph(
                         ptr + fileOffset, maxLen, fileOffset, _peBitness, _pseudocodeGen, ptr, HexView.FileLength, _executableRanges);
-
-                    Dispatcher.Invoke(() =>
-                    {
-
-                        _decompGraphView.SetGraphData(result);
-                        _decompTextView?.SetGraphData(result);
-                        LogMessage($"[Decomp] Graph: {result.Nodes.Length} blocks, {result.Edges.Length} edges.");
-                    });
                 }
                 finally
                 {
                     acc.SafeMemoryMappedViewHandle.ReleasePointer();
                 }
+            }
+
+            Dispatcher.Invoke(() =>
+            {
+                _decompGraphView.SetGraphData(result);
+                _decompTextView?.SetGraphData(result);
+                LogMessage($"[Decomp] Graph: {result.Nodes.Length} blocks, {result.Edges.Length} edges.");
+            });
+
+            if (result.FullText != null && result.FullText.Length > 0)
+            {
+                string linearSource = string.Join("\n", result.FullText.Select(line => line.Text));
+                
+                var admin = new EUVA.Core.Robots.ProcessAdmin();
+                admin.InitializeFleet();
+
+                var annotations = await Task.Run(() => admin.RunPipelineAsync(linearSource));
+
+                LogMessage($"[Decomp] Non-Linear Pipeline finished. Found {annotations.Count} annotations.");
             }
         }
         catch (Exception ex)
