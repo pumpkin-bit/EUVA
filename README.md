@@ -115,15 +115,6 @@ Bridge the gap between **Logic** and **Semantics**. Our experimental AI layer he
 - **Scripting Decompiler** A C# scripting layer that allows you to write custom decompiler scripts and custom decompilation methods.
 - **AI Agents Decompiler** Bring your own API key Cloud or Local via Ollama to instantly restore human-readable variable names and code semantics without UI freezes.
 - **AI-Explain** Now AI can roughly explain decompiled code to you, giving you answers as high-quality as possible. (Experimental feat)
-- **Library Function Identification** Two-level fast-path: CRC32 hash matching Level 5A normalizes the first 32 bytes of a function and checks against a signature database; Fingerprint Radar Level 5B extracts a full IR-level feature vector topology, instruction mix, magic constants, block-size sequence and performs weighted similarity matching.
-- **Struct Recovery** Automatically reconstructs C/C++ struct layouts from raw memory access patterns by clustering `[base + displacement]` operands across the IR, detecting `this` pointers RCX/RDI and generating typed field maps.
-- **VTable Detection** Identifies virtual function calls by recognizing `call [vtable_reg + offset]` patterns where the vtable pointer was loaded from `[obj_ptr + 0]`, tagging calls as `vfunc_N` and typing object pointers as `Class_vtable*`.
-- **Idiom Recognition** Post-structuring pass that collapses common loop patterns into high-level intrinsic calls `do-while` zero-store loops become `memset()`, and load-store loops with dual pointer increments become `memcpy()`.
-- **Switch Detection** Identifies indirect jump tables by recognizing scaled-index memory operands `[table_base + idx * scale]` guarded by unsigned-compare bound-checks, recovering full `switch/case` structures with case counts and default targets.
-- **Semantic Guessing ApiChains** Assigns context-aware function names without AI by collecting all API calls within a function and matching them against known API chain patterns e.g., a function calling `socket → connect → send` is automatically named `network_send_data`.
-- **Variable Coalescing** Union-Find algorithm that groups SSA variable versions flowing through Φ-nodes and assignment chains into single human-readable names `var_N`, `arg_N`, drastically reducing pseudocode noise.
-- **Expression Simplifier** Algebraic identity engine that reduces IR before AST folding eliminates `x + 0`, `x × 1`, `x ⊕ x → 0`, `x & 0xFF..F → x`, and converts `x × 2ⁿ` into `x ≪ n`.
-- **Cross-References Xrefs** Full bidirectional xref analysis tracks call targets, branch targets, and RIP-relative/absolute memory references across the entire binary for instant "who calls this" / "where does this point" navigation.
 
 
 ---
