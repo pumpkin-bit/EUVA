@@ -5,6 +5,12 @@ namespace EUVA.Core.Scripting;
 public enum PassStage
 {
     /// <summary>
+    /// Executes before data are lifted to IR. :3
+    /// Good for patching raw bytes, removing garbage instructions, and hooking before the engine parses them, and etc.
+    /// </summary>
+    PreLifting,
+
+    /// <summary>
     /// Executes right after the control flow graph CFG has been lifted to intermediate representation IR,
     /// but before any Static Single Assignment SSA form construction or optimizations.
     /// Good for Architecture-specific lifting fixes, CFG modifications dead block removal.

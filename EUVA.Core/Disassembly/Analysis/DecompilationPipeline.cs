@@ -156,7 +156,33 @@ public sealed class DecompilationPipeline
                 }
             }
         }
-      
+        Func<long, int, byte[]> safeMemReader = (offset, size) =>
+        {
+            if (fileData == null || offset < 0 || size <= 0 || offset + size > fileLength) return Array.Empty<byte>();
+            var buf = new byte[size];
+            for (int i = 0; i < size; i++) buf[i] = fileData[offset + i];
+            return buf;
+        };
+
+        Action<long, byte[]> safeMemWriter = (offset, data) =>
+        {
+            if (fileData == null || data == null || offset < 0 || offset + data.Length > fileLength) return;
+            for (int i = 0; i < data.Length; i++) fileData[offset + i] = data[i];
+        };
+
+        var ctx = new DecompilerContext(
+            blocks: null,
+            globalRenames: _userRenames,
+            globalStructs: GlobalStructs ?? new(),
+            functionAddress: baseAddress,
+            fileLength: fileLength,
+            userComments: UserComments,
+            readMemoryOffset: safeMemReader,
+            writeMemoryOffset: safeMemWriter,
+            log: ScriptLoader.Instance.OnColorLogMessage
+        );
+
+        ScriptLoader.Instance.RunScripts(PassStage.PreLifting, ctx);
 
         var lifter = new IrLifter(_bitness, _imports, _strings);
         var irBlocks = new IrBlock[cfgBlocks.Length];
@@ -200,7 +226,7 @@ public sealed class DecompilationPipeline
         SsaBuilder.Build(irBlocks);
         PopulateLastCmp(irBlocks);
 
-        var ctx = new DecompilerContext(irBlocks, _userRenames, GlobalStructs ?? new(), baseAddress);
+        ctx.Blocks = irBlocks;
         ScriptLoader.Instance.RunScripts(PassStage.PreSsa, ctx);
 
         int maxPasses = isLibraryFunction ? 1 : 10;
