@@ -175,18 +175,100 @@ public sealed class DisassemblerHexView : FrameworkElement
         InitContextMenu();
     }
 
+    private static readonly SolidColorBrush MenuBg       = Freeze(new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x25)));
+    private static readonly SolidColorBrush MenuBorder   = Freeze(new SolidColorBrush(Color.FromRgb(0x45, 0x47, 0x5A)));
+    private static readonly SolidColorBrush MenuFg       = Freeze(new SolidColorBrush(Color.FromRgb(0xCD, 0xD6, 0xF4)));
+    private static readonly SolidColorBrush MenuHoverBg  = Freeze(new SolidColorBrush(Color.FromRgb(0x31, 0x32, 0x44)));
+    private static readonly SolidColorBrush MenuHoverFg  = Freeze(new SolidColorBrush(Color.FromRgb(0x89, 0xB4, 0xFA)));
+    private static readonly SolidColorBrush MenuGestFg   = Freeze(new SolidColorBrush(Color.FromRgb(0xA6, 0xAD, 0xC8)));
+    private static SolidColorBrush Freeze(SolidColorBrush b) { b.Freeze(); return b; }
+
     private void InitContextMenu()
     {
-        var cm = new ContextMenu();
-        var miParent = new MenuItem { Header = "Go to Parent Function", InputGestureText = "P / Enter" };
-        miParent.Click += (_, _) => FindParentFunctionRequested?.Invoke(this, _selectedOffset);
-        cm.Items.Add(miParent);
+        var cm = new ContextMenu
+        {
+            Background = MenuBg,
+            Foreground = MenuFg,
+            BorderBrush = MenuBorder,
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(0, 4, 0, 4),
+            HasDropShadow = true
+        };
 
-        var miXrefs = new MenuItem { Header = "Find Xrefs", InputGestureText = "X" };
-        miXrefs.Click += (_, _) => XrefsRequested?.Invoke(this, _selectedOffset);
-        cm.Items.Add(miXrefs);
+        var cmTemplate = new ControlTemplate(typeof(ContextMenu));
+        var borderFactory = new FrameworkElementFactory(typeof(Border));
+        borderFactory.SetValue(Border.BackgroundProperty, MenuBg);
+        borderFactory.SetValue(Border.BorderBrushProperty, MenuBorder);
+        borderFactory.SetValue(Border.BorderThicknessProperty, new Thickness(1));
+        borderFactory.SetValue(Border.PaddingProperty, new Thickness(0, 4, 0, 4));
+        borderFactory.SetValue(Border.SnapsToDevicePixelsProperty, true);
+
+        var presenterFactory = new FrameworkElementFactory(typeof(ItemsPresenter));
+        presenterFactory.SetValue(KeyboardNavigation.DirectionalNavigationProperty, KeyboardNavigationMode.Cycle);
+        borderFactory.AppendChild(presenterFactory);
+
+        cmTemplate.VisualTree = borderFactory;
+        cm.Template = cmTemplate;
+
+        cm.Items.Add(MakeItem("Go to Parent Function", "P / Enter",
+            (_, _) => FindParentFunctionRequested?.Invoke(this, _selectedOffset)));
+        cm.Items.Add(MakeItem("Find Xrefs", "X",
+            (_, _) => XrefsRequested?.Invoke(this, _selectedOffset)));
 
         ContextMenu = cm;
+    }
+
+    private static MenuItem MakeItem(string header, string gesture, RoutedEventHandler onClick)
+    {
+        var mi = new MenuItem
+        {
+            Header = header,
+            InputGestureText = gesture,
+            Foreground = MenuFg,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+        };
+
+        var template = new ControlTemplate(typeof(MenuItem));
+        var rootBorder = new FrameworkElementFactory(typeof(Border), "Bd");
+        rootBorder.SetValue(Border.BackgroundProperty, Brushes.Transparent);
+        rootBorder.SetValue(Border.PaddingProperty, new Thickness(8, 4, 8, 4));
+        rootBorder.SetValue(Border.SnapsToDevicePixelsProperty, true);
+
+        var grid = new FrameworkElementFactory(typeof(Grid));
+        var col0 = new FrameworkElementFactory(typeof(ColumnDefinition));
+        col0.SetValue(ColumnDefinition.WidthProperty, new GridLength(1, GridUnitType.Star));
+        var col1 = new FrameworkElementFactory(typeof(ColumnDefinition));
+        col1.SetValue(ColumnDefinition.WidthProperty, GridLength.Auto);
+        grid.AppendChild(col0);
+        grid.AppendChild(col1);
+
+        var headerPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
+        headerPresenter.SetValue(ContentPresenter.ContentSourceProperty, "Header");
+        headerPresenter.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+        headerPresenter.SetValue(ContentPresenter.RecognizesAccessKeyProperty, true);
+        grid.AppendChild(headerPresenter);
+
+        var gestureText = new FrameworkElementFactory(typeof(TextBlock), "Gesture");
+        gestureText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding("InputGestureText") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+        gestureText.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+        gestureText.SetValue(FrameworkElement.MarginProperty, new Thickness(24, 0, 0, 0));
+        gestureText.SetValue(TextBlock.ForegroundProperty, MenuGestFg);
+        gestureText.SetValue(Grid.ColumnProperty, 1);
+        grid.AppendChild(gestureText);
+
+        rootBorder.AppendChild(grid);
+        template.VisualTree = rootBorder;
+
+        var hoverTrigger = new Trigger { Property = MenuItem.IsHighlightedProperty, Value = true };
+        hoverTrigger.Setters.Add(new Setter(Border.BackgroundProperty, MenuHoverBg, "Bd"));
+        hoverTrigger.Setters.Add(new Setter(MenuItem.ForegroundProperty, MenuHoverFg));
+        hoverTrigger.Setters.Add(new Setter(TextBlock.ForegroundProperty, MenuHoverFg, "Gesture"));
+        template.Triggers.Add(hoverTrigger);
+
+        mi.Template = template;
+        mi.Click += onClick;
+        return mi;
     }
 
     protected override int VisualChildrenCount => 1;
