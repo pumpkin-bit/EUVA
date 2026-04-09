@@ -127,11 +127,90 @@
         </Style>
 
       
+        <Style TargetType="Menu">
+            <Setter Property="Background" Value="#11111B"/>
+            <Setter Property="Foreground" Value="#CDD6F4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
         <Style TargetType="MenuItem">
             <Setter Property="Foreground" Value="#CDD6F4"/>
-            <Setter Property="Background" Value="#1E1E2E"/>
+            <Setter Property="Background" Value="Transparent"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize"   Value="12"/>
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type MenuItem}">
+                        <Border x:Name="templateRoot"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Background="{TemplateBinding Background}"
+                                SnapsToDevicePixels="True">
+                            <Grid Margin="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition x:Name="IconColumn" MinWidth="22" SharedSizeGroup="MenuItemIconColumnGroup" Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition x:Name="IGTColumn" SharedSizeGroup="MenuItemIGTColumnGroup" Width="Auto"/>
+                                    <ColumnDefinition x:Name="ArrowColumn" Width="14"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <ContentPresenter x:Name="Icon" ContentSource="Icon" HorizontalAlignment="Center" VerticalAlignment="Center" Width="16" Height="16" Margin="3"/>
+                                <ContentPresenter Grid.Column="1" x:Name="HeaderHost" ContentSource="Header" Margin="4,2,4,2" RecognizesAccessKey="True" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" x:Name="InputGestureText" Text="{TemplateBinding InputGestureText}" Margin="15,2,5,2" VerticalAlignment="Center" Foreground="#A6ADC8"/>
+                                <Path Grid.Column="3" x:Name="RightArrow" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#CDD6F4" Data="M 0,0 L 4,4 L 0,8 Z"/>
+
+                                <Popup x:Name="PART_Popup" AllowsTransparency="True" Focusable="False" IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" PopupAnimation="Fade" Placement="Right">
+                                    <Border x:Name="SubMenuBorder" Background="#181825" BorderBrush="#45475A" BorderThickness="1" SnapsToDevicePixels="True" Margin="0,0,5,5">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="5" Opacity="0.4" ShadowDepth="2" Direction="315" Color="Black"/>
+                                        </Border.Effect>
+                                        <ScrollViewer Style="{DynamicResource {ComponentResourceKey ResourceId=MenuScrollViewer, TypeInTargetAssembly={x:Type FrameworkElement}}}">
+                                            <ItemsPresenter x:Name="ItemsPresenter" KeyboardNavigation.DirectionalNavigation="Cycle" Grid.IsSharedSizeScope="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" KeyboardNavigation.TabNavigation="Cycle"/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Role" Value="TopLevelHeader">
+                                <Setter TargetName="PART_Popup" Property="Placement" Value="Bottom"/>
+                                <Setter TargetName="templateRoot" Property="Padding" Value="6,2"/>
+                                <Setter TargetName="HeaderHost" Property="Margin" Value="0"/>
+                                <Setter TargetName="InputGestureText" Property="Visibility" Value="Collapsed"/>
+                                <Setter TargetName="Icon" Property="Visibility" Value="Collapsed"/>
+                                <Setter TargetName="RightArrow" Property="Visibility" Value="Collapsed"/>
+                                <Setter TargetName="IconColumn" Property="MinWidth" Value="0"/>
+                                <Setter TargetName="IconColumn" Property="Width" Value="0"/>
+                                <Setter TargetName="IGTColumn" Property="Width" Value="0"/>
+                                <Setter TargetName="ArrowColumn" Property="Width" Value="0"/>
+                            </Trigger>
+                            <Trigger Property="Role" Value="TopLevelItem">
+                                <Setter TargetName="templateRoot" Property="Padding" Value="6,2"/>
+                                <Setter TargetName="HeaderHost" Property="Margin" Value="0"/>
+                                <Setter TargetName="IconColumn" Property="MinWidth" Value="0"/>
+                                <Setter TargetName="IconColumn" Property="Width" Value="0"/>
+                                <Setter TargetName="IGTColumn" Property="Width" Value="0"/>
+                                <Setter TargetName="ArrowColumn" Property="Width" Value="0"/>
+                            </Trigger>
+                            <Trigger Property="Role" Value="SubmenuHeader">
+                                <Setter TargetName="RightArrow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="templateRoot" Property="Background" Value="#313244"/>
+                                <Setter Property="Foreground" Value="#89B4FA"/>
+                                <Setter TargetName="InputGestureText" Property="Foreground" Value="#89B4FA"/>
+                                <Setter TargetName="RightArrow" Property="Fill" Value="#89B4FA"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#585B70"/>
+                                <Setter TargetName="InputGestureText" Property="Foreground" Value="#585B70"/>
+                                <Setter TargetName="RightArrow" Property="Fill" Value="#585B70"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style TargetType="Separator">
