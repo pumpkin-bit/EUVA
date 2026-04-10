@@ -79,6 +79,15 @@ public sealed class RobotNetwork : IRobotNetwork
         return new RobotDirectResponse { Success = false };
     }
 
+    public async Task BroadcastStatusAsync(Guid senderId, RobotStatus status)
+    {
+        var deliveries = _registered.Values
+            .Where(r => r.Id != senderId)
+            .Select(r => r.OnPeerStatusChangeAsync(senderId, status));
+
+        await Task.WhenAll(deliveries).ConfigureAwait(false);
+    }
+
     public int RegisteredCount => _registered.Count;
     public int ReadyCount      => _helloSent.Count;
 
