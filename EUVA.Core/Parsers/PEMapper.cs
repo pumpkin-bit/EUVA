@@ -77,15 +77,15 @@ public class PEMapper : IBinaryMapper
 
         var dosHeader = peFile.DosHeader;
 
-        var magicVal = GetNestedMemberValue(dosHeader, "Signature", "Magic");
-        var lastPageVal = GetNestedMemberValue(dosHeader, "LastPageByteCount", "BytesOnLastPage");
-        var pageCountVal = GetNestedMemberValue(dosHeader, "PageCount", "PagesInFile");
+        var magicVal = BitConverter.ToUInt16(_fileData, 0x00);
+        var lastPageVal = BitConverter.ToUInt16(_fileData, 0x02);
+        var pageCountVal = BitConverter.ToUInt16(_fileData, 0x04);
 
-        AddField(dosNode, "e_magic", 0x00, 2, magicVal ?? 0, magicVal != null ? $"0x{Convert.ToUInt32(magicVal):X4} (MZ)" : null);
-        AddField(dosNode, "e_cblp", 0x02, 2, lastPageVal ?? 0);
-        AddField(dosNode, "e_cp", 0x04, 2, pageCountVal ?? 0);
+        AddField(dosNode, "e_magic", 0x00, 2, magicVal, $"0x{magicVal:X4} {(magicVal == 0x5A4D ? "(MZ)" : "")}");
+        AddField(dosNode, "e_cblp", 0x02, 2, lastPageVal, lastPageVal.ToString());
+        AddField(dosNode, "e_cp", 0x04, 2, pageCountVal, pageCountVal.ToString());
         AddField(dosNode, "e_lfanew", 0x3C, 4, dosHeader.NextHeaderOffset, $"0x{dosHeader.NextHeaderOffset:X8}");
-
+     
         CreateRegion("DOS Header", 0, 64, RegionType.Header, Colors.DarkSlateBlue, dosNode);
         root.AddChild(dosNode);
     }
@@ -128,15 +128,15 @@ public class PEMapper : IBinaryMapper
             Size = (long)fileHeader.SizeOfOptionalHeader
         };
 
-        var magicVal = GetNestedMemberValue(optionalHeader, "Magic");
-        AddField(optHeaderNode, "Magic", 0, 2, magicVal ?? 0, magicVal?.ToString());
+        var magicVal = TryInvokeMethodOrProperty(optionalHeader, "Magic");
+        AddField(optHeaderNode, "Magic", 0, 2, magicVal ?? 0, magicVal?.ToString() ?? "Error");
         
-        var addrEpVal = GetNestedMemberValue(optionalHeader, "AddressOfEntryPoint");
+        var addrEpVal = TryInvokeMethodOrProperty(optionalHeader, "AddressOfEntryPoint");
         AddField(optHeaderNode, "AddressOfEntryPoint", 16, 4, addrEpVal ?? 0,
-            $"0x{Convert.ToUInt32(addrEpVal ?? 0):X8}");
+            addrEpVal != null ? $"0x{Convert.ToUInt32(addrEpVal):X8}" : "Error");
 
         
-        var imageBaseVal = GetNestedMemberValue(optionalHeader, "ImageBase");
+        var imageBaseVal = TryInvokeMethodOrProperty(optionalHeader, "ImageBase");
         
         bool is64Bit = magicVal?.ToString()?.Contains("Pe32Plus") ?? false;
         int imageBaseSize = is64Bit ? 8 : 4;
@@ -177,14 +177,14 @@ public class PEMapper : IBinaryMapper
 
         foreach (var section in peFile.Sections)
         {
-            var nameObj = GetNestedMemberValue(section, "Name") ?? section.Name;
+            var nameObj = TryInvokeMethodOrProperty(section, "Name") ?? section.Name;
             string secName;
             if (nameObj is byte[] nameBytes)
                 secName = Encoding.UTF8.GetString(nameBytes).TrimEnd('\0');
             else
                 secName = nameObj?.ToString() ?? string.Empty;
 
-            var rawPtrVal = GetNestedMemberValue(section, "Header.PointerToRawData", "PointerToRawData") ?? GetNestedMemberValue(section, "PointerToRawData") ?? GetNestedMemberValue(section, "Offset");
+            var rawPtrVal = TryInvokeMethodOrProperty(section, "Offset", "PointerToRawData");
 
             var sectionNode = new BinaryStructure
             {
@@ -194,17 +194,21 @@ public class PEMapper : IBinaryMapper
                 Size = (long)section.GetPhysicalSize()
             };
 
-            var virtualSizeVal = GetNestedMemberValue(section, "Header.VirtualSize", "VirtualSize");
-            AddField(sectionNode, "VirtualSize", 0, 4, virtualSizeVal ?? 0, $"0x{Convert.ToUInt32(virtualSizeVal ?? 0):X}");
+            var virtualSizeVal = TryInvokeMethodOrProperty(section, "GetVirtualSize", "VirtualSize");
+            AddField(sectionNode, "VirtualSize", 0, 4, virtualSizeVal ?? 0, virtualSizeVal != null ? $"0x{Convert.ToUInt32(virtualSizeVal):X}" : "Error");
+            
             AddField(sectionNode, "VirtualAddress", 4, 4, section.Rva, $"0x{section.Rva:X8}");
-            var sizeOfRawDataVal = GetNestedMemberValue(section, "SizeOfRawData");
-            AddField(sectionNode, "SizeOfRawData", 8, 4, sizeOfRawDataVal ?? 0, $"0x{Convert.ToUInt32(sizeOfRawDataVal ?? 0):X}");
-            var ptrRawVal = GetNestedMemberValue(section, "Header.PointerToRawData", "PointerToRawData");
-            AddField(sectionNode, "PointerToRawData", 12, 4, ptrRawVal ?? 0, $"0x{Convert.ToUInt32(ptrRawVal ?? 0):X}");
+            
+            var sizeOfRawDataVal = TryInvokeMethodOrProperty(section, "GetPhysicalSize", "SizeOfRawData");
+            AddField(sectionNode, "SizeOfRawData", 8, 4, sizeOfRawDataVal ?? 0, sizeOfRawDataVal != null ? $"0x{Convert.ToUInt32(sizeOfRawDataVal):X}" : "Error");
+            
+            var ptrRawVal = TryInvokeMethodOrProperty(section, "Offset", "PointerToRawData");
+            AddField(sectionNode, "PointerToRawData", 12, 4, ptrRawVal ?? 0, ptrRawVal != null ? $"0x{Convert.ToUInt32(ptrRawVal):X}" : "Error");
+            
             AddField(sectionNode, "Characteristics", 36, 4, section.Characteristics, section.Characteristics.ToString());
 
             
-            double entropy = CalculateEntropy(_fileData, (int)(sectionNode.Offset ?? 0), (int)(sectionNode.Size ?? 0));
+            double entropy = CalculateEntropy(_fileData, (int)(Convert.ToInt64(ptrRawVal ?? 0)), (int)(Convert.ToInt64(sizeOfRawDataVal ?? 0)));
             AddField(sectionNode, "Entropy", 0, 0, entropy, $"{entropy:F2} bits");
             
 
@@ -334,26 +338,22 @@ public class PEMapper : IBinaryMapper
         _providers.Add(provider);
     }
 
-    private static object? GetNestedMemberValue(object? obj, params string[] names)
+
+
+    private static object? TryInvokeMethodOrProperty(object? obj, params string[] names)
     {
         if (obj == null) return null;
+        var t = obj.GetType();
         foreach (var name in names)
         {
-            object? current = obj;
-            var parts = name.Split('.');
-            bool found = true;
-            foreach (var part in parts)
-            {
-                if (current == null) { found = false; break; }
-                var t = current.GetType();
-                var prop = t.GetProperty(part);
-                if (prop != null) { current = prop.GetValue(current); continue; }
-                var field = t.GetField(part);
-                if (field != null) { current = field.GetValue(current); continue; }
-                found = false;
-                break;
-            }
-            if (found) return current;
+            var prop = t.GetProperty(name);
+            if (prop != null) return prop.GetValue(obj);
+            
+            var method = t.GetMethod(name, Type.EmptyTypes);
+            if (method != null) return method.Invoke(obj, null);
+            
+            var field = t.GetField(name);
+            if (field != null) return field.GetValue(obj);
         }
         return null;
     }
