@@ -101,7 +101,38 @@ public sealed class DecompilerRobot : RobotBase
             _                                  => Task.FromResult(new List<RobotAnnotation>()),
         };
 
-    private async Task<List<RobotAnnotation>> ScanYaraPatterns(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); return []; }
+    private async Task<List<RobotAnnotation>> ScanYaraPatterns(MappedDumpContext ctx, CancellationToken ct)
+    {
+        await Task.Yield();
+        var annotations = new List<RobotAnnotation>();
+
+        //debug
+        string missingKey = "TestSig_01";
+        var prev = Console.ForegroundColor;
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"[ROBOT:ERR] {Role} missing YARA signature: '{missingKey}'. Requesting Admin help...");
+        Console.ForegroundColor = prev;
+
+        AdminResponse response = await RequestAdminHelpAsync(missingKey, ct);
+
+        if (response.Decision == AdminDecision.InheritData && response.Payload != null)
+        {
+            prev = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"[ROBOT:ACK] {Role} inherited payload of {response.Payload.Length} bytes. Processing...");
+            Console.ForegroundColor = prev;
+            annotations.Add(Annotate($"Inherited KDB YARA payload for {missingKey}"));
+        }
+        else
+        {
+            prev = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine($"[ROBOT:ACK] {Role} was instructed to Ignore missing '{missingKey}'. Skipping.");
+            Console.ForegroundColor = prev;
+        }
+
+        return annotations;
+    }
     private async Task<List<RobotAnnotation>> MatchHexSignatures(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); return []; }
     private async Task<List<RobotAnnotation>> AnalyzeBinaryPatterns(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); return []; }
 
