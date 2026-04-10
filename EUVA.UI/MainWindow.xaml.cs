@@ -652,7 +652,7 @@ catch (Exception iatEx)
                     : (ushort)((_inspectorBuf[0] << 8) | _inspectorBuf[1]);
                 items.Add(new InspectorItem("Int16 / UInt16",
                     $"{(short)v} | {v}", $"{_inspectorBuf[0]:X2}-{_inspectorBuf[1]:X2}"));
-                items.Add(new InspectorItem("Дата / Время DOS",
+                items.Add(new InspectorItem("Date / Time DOS",
                     $"{DataParser.ToDosDate(v)} {DataParser.ToDosTime(v)}", "MS-DOS"));
             }
             if (remaining >= 3)
