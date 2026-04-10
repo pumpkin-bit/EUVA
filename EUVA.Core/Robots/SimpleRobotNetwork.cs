@@ -10,8 +10,14 @@ namespace EUVA.Core.Robots;
 public sealed class RobotNetwork : IRobotNetwork
 {
     private readonly ConcurrentDictionary<Guid, RobotBase> _registered = new();
-
     private readonly ConcurrentBag<Guid> _helloSent = new();
+
+    public IProcessAdmin Admin { get; }
+
+    public RobotNetwork(IProcessAdmin admin)
+    {
+        Admin = admin ?? throw new ArgumentNullException(nameof(admin));
+    }
 
     public bool AllRobotsReady =>
         _registered.Count > 0 && _helloSent.Count >= _registered.Count;
