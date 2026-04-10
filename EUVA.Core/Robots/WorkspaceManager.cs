@@ -37,13 +37,25 @@ public static class WorkspaceManager
         return dumpPath; 
     }
 
-    public static void AppendAnnotation(string dumpPath, string annotationLine)
+    public static void WriteAnnotation(string dumpPath, RobotRole role, long offset, int line, string action, string context)
     {
         string annPath = dumpPath.Replace(".dump", ".annotations");
+        string entry = $"{role}|0x{offset:X8}|L{line}|{action}|{context}";
         
         lock (string.Intern(annPath)) 
         {
-            File.AppendAllText(annPath, annotationLine + Environment.NewLine);
+            File.AppendAllText(annPath, entry + Environment.NewLine);
+        }
+    }
+
+    public static string[] ReadAnnotations(string dumpPath)
+    {
+        string annPath = dumpPath.Replace(".dump", ".annotations");
+        if (!File.Exists(annPath)) return [];
+        
+        lock (string.Intern(annPath))
+        {
+            return File.ReadAllLines(annPath);
         }
     }
 
