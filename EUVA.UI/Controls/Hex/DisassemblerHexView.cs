@@ -62,7 +62,7 @@ public sealed class DisassemblerHexView : FrameworkElement
                     FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
                 dc.DrawText(new FormattedText(c.ToString(),
                     System.Globalization.CultureInfo.InvariantCulture,
-                    FlowDirection.LeftToRight, tf, _fontSize, brush, _pixelsPerDip),
+                    FlowDirection.LeftToRight, tf, _fontSize, brush, null, TextFormattingMode.Display, _pixelsPerDip),
                     new Point(0, 0));
             }
             var rtb = new RenderTargetBitmap(_cellW, _cellH, dpi, dpi, PixelFormats.Pbgra32);
@@ -159,6 +159,13 @@ public sealed class DisassemblerHexView : FrameworkElement
     public DisassemblerHexView()
     {
         ClipToBounds = true; Focusable = true;
+        UseLayoutRounding = true;
+        SnapsToDevicePixels = true;
+        RenderOptions.SetBitmapScalingMode(_image, BitmapScalingMode.NearestNeighbor);
+        RenderOptions.SetEdgeMode(_image, EdgeMode.Aliased);
+        TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
+        TextOptions.SetTextRenderingMode(this, TextRenderingMode.Aliased);
+
         AddVisualChild(_image); AddLogicalChild(_image);
 
         Loaded += (_, _) =>
