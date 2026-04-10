@@ -118,6 +118,23 @@ public abstract class RobotBase
         }
     }
 
+    public virtual Task<RobotDirectResponse> OnDirectCommandReceivedAsync(RobotDirectCommand command)
+    {
+        return Task.FromResult(new RobotDirectResponse { Success = false, Data = null });
+    }
+
+    protected async Task<RobotDirectResponse> IssueDirectCommandAsync(Guid targetId, string action, byte[]? payload = null)
+    {
+        var command = new RobotDirectCommand
+        {
+            SenderId = Id,
+            SenderRole = Role,
+            Action = action,
+            Payload = payload
+        };
+        return await _network.SendDirectCommandAsync(targetId, command).ConfigureAwait(false);
+    }
+
     public override string ToString() =>
         $"[Robot id={Id:N} role={Role} status={Status} peers={_peers.Count}]";
 }

@@ -14,4 +14,6 @@ public interface IRobotNetwork
     bool AllRobotsReady { get; }
 
     IProcessAdmin Admin { get; }
+
+    Task<RobotDirectResponse> SendDirectCommandAsync(Guid targetId, RobotDirectCommand command);
 }
