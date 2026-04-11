@@ -59,6 +59,40 @@ public static class WorkspaceManager
         }
     }
 
+    public static void ApplyTransformations(string dumpPath)
+    {
+        string[] lines = File.ReadAllLines(dumpPath);
+        var annotations = ReadAnnotations(dumpPath);
+        
+        foreach (var ann in annotations)
+        {
+            var parts = ann.Split('|', 5);
+            if (parts.Length < 5) continue;
+            
+            string role = parts[0];
+            string action = parts[3];
+            string context = parts[4];
+            
+            if (action == "PATCH_LINE")
+            {
+                var colonIdx = context.IndexOf(':');
+                if (colonIdx > 0)
+                {
+                    if (int.TryParse(context.Substring(0, colonIdx), out int lineIdx))
+                    {
+                        if (lineIdx >= 0 && lineIdx < lines.Length)
+                        {
+                            string newContent = context.Substring(colonIdx + 1);
+                            lines[lineIdx] = newContent;
+                        }
+                    }
+                }
+            }
+        }
+
+        File.WriteAllLines(dumpPath, lines);
+    }
+
     public static void PurgeAllDumps()
     {
         if (Directory.Exists(DumpsDirectory))
