@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using EUVA.Core.Robots.Patterns;
 
 namespace EUVA.Core.Robots;
 
@@ -22,7 +23,7 @@ public sealed class DecompilerRobot : RobotBase
 
         var prev = Console.ForegroundColor;
         Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine($"[WORK]   {Role,-28} # analyzing dump via MMF...");
+        Console.WriteLine($"[WORK]   {Role,-28} # analyzing dump via PatternEngine...");
         Console.ForegroundColor = prev;
 
         try
@@ -79,194 +80,73 @@ public sealed class DecompilerRobot : RobotBase
         Interlocked.Increment(ref _annotationCount);
     }
 
+    private static string[] GetCategoriesForRole(RobotRole role) => role switch
+    {
+        RobotRole.WinApiToCppAgent      => new[] { "winapi" },
+        RobotRole.PointerCastSimplifier => new[] { "casts" },
+        RobotRole.MacroReconstructor    => new[] { "macros" },
+        RobotRole.TypeInferenceAgent    => new[] { "type_inference" },
+        RobotRole.GlobalVariableRenamer => new[] { "compiler_idioms" },
+        RobotRole.IfElseStructurer      => new[] { "std_namespace", "oop_wrappers" },
+        RobotRole.VerificationRelay     => Array.Empty<string>(),
+        _                               => Array.Empty<string>(),
+    };
+
     private Task DispatchByRole(MappedDumpContext ctx, CancellationToken ct) =>
         Role switch
         {
-            RobotRole.WinApiToCppAgent      => TransformWinApiAsync(ctx, ct),
-            RobotRole.PointerCastSimplifier => SimplifyPointerCastsAsync(ctx, ct),
-            RobotRole.MacroReconstructor    => ReconstructMacrosAsync(ctx, ct),
-            RobotRole.TypeInferenceAgent    => InferCppTypesAsync(ctx, ct),
-            RobotRole.GlobalVariableRenamer => RenameGlobalsAsync(ctx, ct),
-            RobotRole.IfElseStructurer      => StructureIfElseAsync(ctx, ct),
-            RobotRole.VerificationRelay     => RelayVerification(ctx, ct),
-            _                               => Task.CompletedTask,
+            RobotRole.VerificationRelay => RelayVerification(ctx, ct),
+            _                          => ApplyPatternsAsync(ctx, ct),
         };
 
-    private async Task TransformWinApiAsync(MappedDumpContext ctx, CancellationToken ct)
+    private async Task ApplyPatternsAsync(MappedDumpContext ctx, CancellationToken ct)
     {
         await Task.Yield();
+
         var lines = ctx.ReadLines();
-        
-        for (int i = 0; i < lines.Length; i++)
+        var categories = GetCategoriesForRole(Role);
+
+        if (categories.Length == 0)
         {
-            var line = lines[i];
-            if (line.Contains("kernel32::DeleteFileW"))
+            return;
+        }
+
+        string rulesDir = PatternLoader.GetDefaultRulesDir();
+        var rules = PatternLoader.LoadByCategories(rulesDir, categories);
+
+        if (rules.Count == 0)
+        {
+            var warnColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.DarkYellow;
+            Console.WriteLine($"[WARN]   {Role,-28} # no rules found in: {string.Join(", ", categories)}");
+            Console.ForegroundColor = warnColor;
+            return;
+        }
+
+        var prev = Console.ForegroundColor;
+        Console.ForegroundColor = ConsoleColor.DarkCyan;
+        Console.WriteLine($"[ENGINE] {Role,-28} # loaded {rules.Count} rules from [{string.Join(", ", categories)}]");
+        Console.ForegroundColor = prev;
+
+        var engine = new PatternEngine(rules);
+        var result = engine.ApplyAll(lines);
+
+        for (int i = 0; i < result.Length; i++)
+        {
+            if (result[i] != lines[i])
             {
-                string replaced = line.Replace("kernel32::DeleteFileW", "std::filesystem::remove");
-                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
-            }
-            else if (line.Contains("kernel32::CloseHandle"))
-            {
-                string replaced = line.Replace("kernel32::CloseHandle", "CloseHandle"); 
-                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
-            }
-            else if (line.Contains("kernel32::lstrlenA"))
-            {
-                string replaced = line.Replace("kernel32::lstrlenA()", "strlen(a1)"); 
-                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
+                Emit(0, i, "PATCH_LINE", $"{i}:{result[i]}");
             }
         }
+
+        prev = Console.ForegroundColor;
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"[ENGINE] {Role,-28} # {engine.TotalPatches} line(s) transformed");
+        Console.ForegroundColor = prev;
     }
 
-
-    
-    //  (stub and code hardcode are used here)
-    //   because it's a test..
-    private async Task SimplifyPointerCastsAsync(MappedDumpContext ctx, CancellationToken ct)
+    private async Task RelayVerification(MappedDumpContext ctx, CancellationToken ct)
     {
         await Task.Yield();
-        var lines = ctx.ReadLines();
-
-        for (int i = 0; i < lines.Length; i++)
-        {
-            var line = lines[i];
-            if (line.Contains("((void* (*)(unsigned int))rax)"))
-            {
-                string replaced = line.Replace("((void* (*)(unsigned int))rax)", "reinterpret_cast<void*(*)(unsigned int)>(rax)");
-                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
-            }
-            else if (line.Contains("((void* (*)(unsigned int))v2)"))
-            {
-                string replaced = line.Replace("((void* (*)(unsigned int))v2)", "reinterpret_cast<void*(*)(unsigned int)>(v2)");
-                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
-            }
-        }
-    }
-
-    private async Task ReconstructMacrosAsync(MappedDumpContext ctx, CancellationToken ct)
-    {
-        await Task.Yield();
-        var lines = ctx.ReadLines();
-
-        for (int i = 0; i < lines.Length; i++)
-        {
-            var line = lines[i];
-            if (line.Contains("<< 16 |") || line.Contains("<< 8 |"))
-            {
-                int eqIdx = line.IndexOf('=');
-                if (eqIdx > 0)
-                {
-                    string lvalue = line.Substring(0, eqIdx + 1);
-                    string replaced = lvalue + " MAKELONG(rdx, g_0x40A2B6); // reconstructed macro";
-                    Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
-                }
-            }
-        }
-    }
-
-    private async Task InferCppTypesAsync(MappedDumpContext ctx, CancellationToken ct)
-    {
-        await Task.Yield();
-        var lines = ctx.ReadLines();
-
-        for (int i = 0; i < lines.Length; i++)
-        {
-            var line = lines[i];
-            if (line.Contains("sz_ErrorMsg = \""))
-            {
-                string replaced = line.Replace("sz_ErrorMsg = ", "const char* sz_ErrorMsg = ");
-                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
-            }
-        }
-    }
-
-    private async Task RenameGlobalsAsync(MappedDumpContext ctx, CancellationToken ct)
-    {
-        await Task.Yield();
-        var lines = ctx.ReadLines();
-
-        for (int i = 0; i < lines.Length; i++)
-        {
-            var line = lines[i];
-            if (line.Contains("&g_Data_4CF000"))
-            {
-                string replaced = line.Replace("&g_Data_4CF000", "&g_SysBuffer_CF00");
-                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
-            }
-        }
-    }
-
-    private async Task StructureIfElseAsync(MappedDumpContext ctx, CancellationToken ct)
-    {
-        await Task.Yield();
-        var lines = ctx.ReadLines();
-
-        for (int i = 0; i < lines.Length; i++)
-        {
-            var line = lines[i];
-            if (line.Contains("if (rax == 0)") && lines.Length > i + 1 && lines[i+1].Contains("ExitProcess"))
-            {
-                string replaced = line.Replace("if (rax == 0)", "if (!rax) /* check */");
-                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
-            }
-        }
-    }
-
-    private async Task RelayVerification(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-
-    private static unsafe int KmpCountOccurrences(ReadOnlySpan<byte> text, string patternString)
-    {
-        int patLen = patternString.Length;
-        if (patLen == 0 || text.Length < patLen) 
-            return 0;
-        
-        byte* pat = stackalloc byte[patLen];
-        for (int i = 0; i < patLen; i++) 
-            pat[i] = (byte)patternString[i];
-
-        int* lps = stackalloc int[patLen];
-        lps[0] = 0;
-        int len = 0, idx = 1;
-        while (idx < patLen)
-        {
-            if (pat[idx] == pat[len]) 
-                lps[idx++] = ++len;
-            else if (len != 0) 
-                len = lps[len - 1];
-            else 
-                lps[idx++] = 0;
-        }
-
-        int count = 0;
-        int iTxt = 0, jPat = 0;
-        
-        while (iTxt < text.Length)
-        {
-            if (pat[jPat] == text[iTxt])
-            {
-                jPat++; 
-                iTxt++;
-            }
-            if (jPat == patLen)
-            {
-                count++;
-                jPat = lps[jPat - 1];
-            }
-            else if (iTxt < text.Length && pat[jPat] != text[iTxt])
-            {
-                if (jPat != 0) 
-                    jPat = lps[jPat - 1];
-                else 
-                    iTxt++;
-            }
-        }
-        return count;
-    }
-
-    private static bool KmpContainsAny(ReadOnlySpan<byte> text, params string[] patterns)
-    {
-        foreach (var p in patterns)
-            if (KmpCountOccurrences(text, p) > 0) return true;
-        return false;
     }
 }
