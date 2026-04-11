@@ -11,21 +11,31 @@ public sealed class PatternEngine
     private readonly List<TransformRule> _rules;
     private readonly DataFlowTracker _dataflow;
     private int _totalPatches;
+    private readonly HashSet<string> _usedStructs = new(StringComparer.OrdinalIgnoreCase);
 
     public PatternEngine(List<TransformRule> rules)
     {
         _rules = rules;
         _dataflow = new DataFlowTracker();
         _totalPatches = 0;
+
+        if (EUVA.Core.Robots.Patterns.Types.TypeDatabase.Structs.Count == 0)
+        {
+            EUVA.Core.Robots.Patterns.Types.TypeDatabase.Load(
+                EUVA.Core.Robots.Patterns.Types.TypeDatabase.GetDefaultStructsFile());
+        }
     }
 
     public DataFlowTracker DataFlow => _dataflow;
     public int TotalPatches => _totalPatches;
+    public IEnumerable<string> UsedStructs => _usedStructs;
 
     public string[] ApplyAll(string[] lines)
     {
         _totalPatches = 0;
         _dataflow.AnalyzePass(lines);
+
+        EUVA.Core.Robots.Patterns.Types.AutoStructBuilder.DiscoverTypes(lines, _dataflow);
 
         var result = new string[lines.Length];
         Array.Copy(lines, result, lines.Length);
@@ -33,7 +43,7 @@ public sealed class PatternEngine
         for (int i = 0; i < result.Length; i++)
         {
             string original = result[i];
-            string current = original;
+            string current = ApplyStructFields(original);
 
             foreach (var rule in _rules)
             {
@@ -84,6 +94,55 @@ public sealed class PatternEngine
         }
 
         return line;
+    }
+
+    private string ApplyStructFields(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line)) return line;
+
+        string current = line;
+
+        var rxField = new Regex(@"([\w_]+)->field_([0-9A-Fa-f]+)");
+        current = rxField.Replace(current, m => 
+        {
+            var varName = m.Groups[1].Value;
+            var offsetHex = m.Groups[2].Value; 
+            
+            var knownType = _dataflow.GetKnownType(varName);
+            if (knownType != null)
+            {
+                var structDef = EUVA.Core.Robots.Patterns.Types.TypeDatabase.GetStruct(knownType);
+                if (structDef != null && structDef.Fields.TryGetValue(offsetHex, out var fieldDef))
+                {
+                    _usedStructs.Add(structDef.Name);
+                    return $"{varName}->{fieldDef.Name}";
+                }
+            }
+            return m.Value;
+        });
+
+        var rxRawCast = new Regex(@"\*\s*\(\s*(?<type>[\w_:]+(?:\s*\*)?)\s*\*\s*\)\s*\(\s*(?<var>[\w_]+)\s*(?<sign>[\+\-])\s*(?:0x)?(?<offset>[0-9A-Fa-f]+)\s*\)");
+        current = rxRawCast.Replace(current, m =>
+        {
+            var varName = m.Groups["var"].Value;
+            var sign = m.Groups["sign"].Value;
+            string offsetHex = m.Groups["offset"].Value;
+            if (sign == "-") offsetHex = "minus_" + offsetHex;
+            
+            var knownType = _dataflow.GetKnownType(varName);
+            if (knownType != null)
+            {
+                var structDef = EUVA.Core.Robots.Patterns.Types.TypeDatabase.GetStruct(knownType);
+                if (structDef != null && structDef.Fields.TryGetValue(offsetHex, out var fieldDef))
+                {
+                    _usedStructs.Add(structDef.Name);
+                    return $"{varName}->{fieldDef.Name}";
+                }
+            }
+            return m.Value;
+        });
+
+        return current;
     }
 
     private string ApplyContextRule(string line, TransformRule rule, int lineIndex)
@@ -172,6 +231,12 @@ public sealed class PatternEngine
 
         string indent = match.Groups[1].Value;
         string varName = match.Groups[2].Value;
+
+        if (varName == "rax" || varName == "rcx" || varName == "rdx" || varName == "r8" || varName == "r9" ||
+            varName == "rbx" || varName == "rsi" || varName == "rdi" || varName == "rsp" || varName == "rbp")
+        {
+            return line;
+        }
 
         var sym = _dataflow.GetSymbol(varName);
         if (sym == null || sym.KnownType == null) return line;
