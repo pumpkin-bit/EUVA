@@ -1,0 +1,68 @@
+{
+  "WIN32_FIND_DATA": {
+    "size": 320,
+    "fields": {
+      "0": {
+        "name": "dwFileAttributes",
+        "type": "uint32_t"
+      },
+      "4": {
+        "name": "ftCreationTime",
+        "type": "FILETIME"
+      },
+      "12": {
+        "name": "ftLastAccessTime",
+        "type": "FILETIME"
+      },
+      "20": {
+        "name": "ftLastWriteTime",
+        "type": "FILETIME"
+      },
+      "28": {
+        "name": "nFileSizeHigh",
+        "type": "uint32_t"
+      },
+      "32": {
+        "name": "nFileSizeLow",
+        "type": "uint32_t"
+      },
+      "36": {
+        "name": "dwReserved0",
+        "type": "uint32_t"
+      },
+      "40": {
+        "name": "dwReserved1",
+        "type": "uint32_t"
+      },
+      "44": {
+        "name": "cFileName",
+        "type": "char[260]"
+      },
+      "304": {
+        "name": "cAlternateFileName",
+        "type": "char[14]"
+      }
+    }
+  },
+  "DateClass": {
+    "size": 12,
+    "fields": {
+      "0": {
+        "name": "test3",
+        "type": "int"
+      },
+      "2": {
+        "name": "m_test2",
+        "type": "short"
+      },
+      "4": {
+        "name": "test1",
+        "type": "int"
+      },
+      "8": {
+        "name": "test4",
+        "type": "int"
+      }
+    }
+  }
+}
