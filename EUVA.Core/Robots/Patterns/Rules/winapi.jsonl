@@ -9,3 +9,10 @@
 {"id":"winapi_generic_write","category":"winapi","description":"GENERIC_WRITE constant","pattern":"CreateFile[WA]?\\(([^,]+),\\s*(?:0x40000000|1073741824)\\s*,","replacement":"CreateFileA($1, GENERIC_WRITE,","mode":"regex","priority":87,"requires_context":false}
 {"id":"winapi_invalid_handle","category":"winapi","description":"INVALID_HANDLE_VALUE constant","pattern":"==\\s*(?:0xFFFFFFFFFFFFFFFF|-1)(?=\\s*[);])","replacement":"== INVALID_HANDLE_VALUE","mode":"regex","priority":85,"requires_context":false}
 {"id":"winapi_null_ptr","category":"winapi","description":"NULL pointer constant","pattern":"(?<=[(,=])\\s*(?:0x0|0)(?=\\s*[),;])","replacement":" nullptr","mode":"regex","priority":60,"requires_context":false,"guard":"(?:Handle|Alloc|Window|Create|Open|Find|Load)"}
+{"id":"winapi_lstrlenA","category":"winapi","description":"lstrlenA -> strlen","pattern":"\\blstrlenA\\(","replacement":"strlen(","mode":"regex","priority":92,"requires_context":false}
+{"id":"winapi_lstrlenW","category":"winapi","description":"lstrlenW -> wcslen","pattern":"\\blstrlenW\\(","replacement":"wcslen(","mode":"regex","priority":92,"requires_context":false}
+{"id":"winapi_lstrcpyA","category":"winapi","description":"lstrcpyA -> strcpy","pattern":"\\blstrcpyA\\(","replacement":"strcpy(","mode":"regex","priority":92,"requires_context":false}
+{"id":"winapi_lstrcpyW","category":"winapi","description":"lstrcpyW -> wcscpy","pattern":"\\blstrcpyW\\(","replacement":"wcscpy(","mode":"regex","priority":92,"requires_context":false}
+{"id":"winapi_lstrcmpA","category":"winapi","description":"lstrcmpA -> strcmp","pattern":"\\blstrcmpA\\(","replacement":"strcmp(","mode":"regex","priority":92,"requires_context":false}
+{"id":"winapi_lstrcmpiW","category":"winapi","description":"lstrcmpiW -> _wcsicmp","pattern":"\\blstrcmpiW\\(","replacement":"_wcsicmp(","mode":"regex","priority":92,"requires_context":false}
+{"id":"winapi_lstrcatA","category":"winapi","description":"lstrcatA -> strcat","pattern":"\\blstrcatA\\(","replacement":"strcat(","mode":"regex","priority":92,"requires_context":false}
