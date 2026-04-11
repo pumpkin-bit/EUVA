@@ -34,14 +34,14 @@ public sealed class RobotVerifier
 
         var waitColor = Console.ForegroundColor;
         Console.ForegroundColor = ConsoleColor.DarkCyan;
-        Console.WriteLine($"[VERIFIER] {role} signature verified. Waiting at barrier ({currentCount}/30)...");
+        Console.WriteLine($"[VERIFIER] {role} signature verified. Waiting at barrier ({currentCount}/7)...");
         Console.ForegroundColor = waitColor;
 
-        if (currentCount == 30)
+        if (currentCount == 7)
         {
             var releaseColor = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("[VERIFIER] 30 robots verified. Releasing barrier! Proceed to apply.");
+            Console.WriteLine("[VERIFIER] 7 robots verified. Releasing barrier! Proceed to apply.");
             Console.ForegroundColor = releaseColor;
             
             _releaseBarrier.TrySetResult();

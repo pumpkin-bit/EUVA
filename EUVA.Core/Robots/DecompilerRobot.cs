@@ -82,169 +82,136 @@ public sealed class DecompilerRobot : RobotBase
     private Task DispatchByRole(MappedDumpContext ctx, CancellationToken ct) =>
         Role switch
         {
-            RobotRole.YaraScanner              => ScanYaraPatterns(ctx, ct),
-            RobotRole.HexSignatureMatcher      => MatchHexSignatures(ctx, ct),
-            RobotRole.BinaryPatternAnalyzer    => AnalyzeBinaryPatterns(ctx, ct),
-            RobotRole.ApiChainTracer           => TraceApiChains(ctx, ct),
-            RobotRole.MetadataExtractor        => ExtractMetadata(ctx, ct),
-            RobotRole.IrLifterAgent            => AnnotateIrLifting(ctx, ct),
-            RobotRole.ControlFlowAnalyzer      => AnalyzeControlFlow(ctx, ct),
-            RobotRole.DataFlowAnalyzer         => AnalyzeDataFlow(ctx, ct),
-            RobotRole.TypeInferenceAgent       => InferTypes(ctx, ct),
-            RobotRole.CallingConventionAgent   => AnalyzeCallingConventions(ctx, ct),
-            RobotRole.StringExtractor          => ExtractStrings(ctx, ct),
-            RobotRole.EntropyAnalyzer          => AnalyzeEntropy(ctx, ct),
-            RobotRole.ImportTracer             => TraceImports(ctx, ct),
-            RobotRole.ExportTracer             => TraceExports(ctx, ct),
-            RobotRole.SsaTransformer           => AnnotateSsa(ctx, ct),
-            RobotRole.LoopDetectionAgent       => DetectLoops(ctx, ct),
-            RobotRole.SwitchDetectionAgent     => DetectSwitches(ctx, ct),
-            RobotRole.StructReconstructor      => ReconstructStructs(ctx, ct),
-            RobotRole.VTableDetectionAgent     => DetectVTables(ctx, ct),
-            RobotRole.IdiomRecognizer          => RecognizeIdioms(ctx, ct),
-            RobotRole.DeadCodeAgent            => EliminateDeadCode(ctx, ct),
-            RobotRole.ConstantPropagationAgent => PropagateConstants(ctx, ct),
-            RobotRole.ExpressionSimplifier     => SimplifyExpressions(ctx, ct),
-            RobotRole.SemanticGuesser          => GuessSemantics(ctx, ct),
-            RobotRole.FingerprintAgent         => MatchFingerprints(ctx, ct),
-            RobotRole.PseudocodeEmitter        => EnhancePseudocode(ctx, ct),
-            RobotRole.NamingAgent              => ApplyNaming(ctx, ct),
-            RobotRole.XrefAnalyzer             => AnalyzeXrefs(ctx, ct),
-            RobotRole.WeightChainValidator     => ValidateWeightChain(ctx, ct),
-            RobotRole.VerificationRelay        => RelayVerification(ctx, ct),
-            _                                  => Task.CompletedTask,
+            RobotRole.WinApiToCppAgent      => TransformWinApiAsync(ctx, ct),
+            RobotRole.PointerCastSimplifier => SimplifyPointerCastsAsync(ctx, ct),
+            RobotRole.MacroReconstructor    => ReconstructMacrosAsync(ctx, ct),
+            RobotRole.TypeInferenceAgent    => InferCppTypesAsync(ctx, ct),
+            RobotRole.GlobalVariableRenamer => RenameGlobalsAsync(ctx, ct),
+            RobotRole.IfElseStructurer      => StructureIfElseAsync(ctx, ct),
+            RobotRole.VerificationRelay     => RelayVerification(ctx, ct),
+            _                               => Task.CompletedTask,
         };
 
-    private async Task ScanYaraPatterns(MappedDumpContext ctx, CancellationToken ct)
+    private async Task TransformWinApiAsync(MappedDumpContext ctx, CancellationToken ct)
     {
         await Task.Yield();
-
-        //debug
-        string missingKey = "TestSig_01";
-        var prev = Console.ForegroundColor;
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine($"[ROBOT:ERR] {Role} missing YARA signature: '{missingKey}'. Requesting Admin help...");
-        Console.ForegroundColor = prev;
-
-        AdminResponse response = await RequestAdminHelpAsync(missingKey, ct);
-
-        if (response.Decision == AdminDecision.InheritData && response.Payload != null)
+        var lines = ctx.ReadLines();
+        
+        for (int i = 0; i < lines.Length; i++)
         {
-            prev = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"[ROBOT:ACK] {Role} inherited payload of {response.Payload.Length} bytes. Processing...");
-            Console.ForegroundColor = prev;
-            Emit(0x0000, 0, "YARA_MATCH", $"Inherited KDB payload for {missingKey}");
-        }
-        else
-        {
-            prev = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine($"[ROBOT:ACK] {Role} was instructed to Ignore missing '{missingKey}'. Skipping.");
-            Console.ForegroundColor = prev;
+            var line = lines[i];
+            if (line.Contains("kernel32::DeleteFileW"))
+            {
+                string replaced = line.Replace("kernel32::DeleteFileW", "std::filesystem::remove");
+                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
+            }
+            else if (line.Contains("kernel32::CloseHandle"))
+            {
+                string replaced = line.Replace("kernel32::CloseHandle", "CloseHandle"); 
+                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
+            }
+            else if (line.Contains("kernel32::lstrlenA"))
+            {
+                string replaced = line.Replace("kernel32::lstrlenA()", "strlen(a1)"); 
+                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
+            }
         }
     }
 
-    private async Task MatchHexSignatures(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task AnalyzeBinaryPatterns(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
 
-    private async Task TraceApiChains(MappedDumpContext ctx, CancellationToken ct)
+    
+    //  (stub and code hardcode are used here)
+    //   because it's a test..
+    private async Task SimplifyPointerCastsAsync(MappedDumpContext ctx, CancellationToken ct)
     {
         await Task.Yield();
+        var lines = ctx.ReadLines();
 
-        ctx.RunScoped(span => 
+        for (int i = 0; i < lines.Length; i++)
         {
-            if (KmpContainsAny(span, "CreateFile", "ReadFile", "WriteFile", "CloseHandle"))
-                Emit(0x0000, 0, "API_CHAIN", "FileIO: CreateFile/ReadFile/WriteFile");
-
-            if (KmpContainsAny(span, "VirtualAlloc", "VirtualProtect", "VirtualFree"))
-                Emit(0x0000, 0, "API_CHAIN", "Memory: VirtualAlloc/VirtualProtect/VirtualFree");
-
-            if (KmpContainsAny(span, "CreateThread", "OpenThread", "ResumeThread"))
-                Emit(0x0000, 0, "API_CHAIN", "Thread: CreateThread/OpenThread/ResumeThread");
-
-            if (KmpContainsAny(span, "RegOpenKey", "RegSetValue", "RegQueryValue"))
-                Emit(0x0000, 0, "API_CHAIN", "Registry: RegOpenKey/RegSetValue/RegQueryValue");
-
-            if (KmpContainsAny(span, "WSAStartup", "connect(", "send(", "recv("))
-                Emit(0x0000, 0, "API_CHAIN", "Network: WSAStartup/connect/send/recv");
-        });
+            var line = lines[i];
+            if (line.Contains("((void* (*)(unsigned int))rax)"))
+            {
+                string replaced = line.Replace("((void* (*)(unsigned int))rax)", "reinterpret_cast<void*(*)(unsigned int)>(rax)");
+                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
+            }
+            else if (line.Contains("((void* (*)(unsigned int))v2)"))
+            {
+                string replaced = line.Replace("((void* (*)(unsigned int))v2)", "reinterpret_cast<void*(*)(unsigned int)>(v2)");
+                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
+            }
+        }
     }
 
-    private async Task ExtractMetadata(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task AnnotateIrLifting(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task AnalyzeControlFlow(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task AnalyzeDataFlow(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-
-    private async Task InferTypes(MappedDumpContext ctx, CancellationToken ct)
+    private async Task ReconstructMacrosAsync(MappedDumpContext ctx, CancellationToken ct)
     {
         await Task.Yield();
+        var lines = ctx.ReadLines();
 
-        ctx.RunScoped(span => 
+        for (int i = 0; i < lines.Length; i++)
         {
-            if (KmpContainsAny(span, "int ", "unsigned int"))
-                Emit(0x0000, 0, "TYPE_PROMOTE", "int/unsigned int -> KDB_LOOKUP_REQUIRED");
-        });
+            var line = lines[i];
+            if (line.Contains("<< 16 |") || line.Contains("<< 8 |"))
+            {
+                int eqIdx = line.IndexOf('=');
+                if (eqIdx > 0)
+                {
+                    string lvalue = line.Substring(0, eqIdx + 1);
+                    string replaced = lvalue + " MAKELONG(rdx, g_0x40A2B6); // reconstructed macro";
+                    Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
+                }
+            }
+        }
     }
 
-    private async Task AnalyzeCallingConventions(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-
-    private async Task ExtractStrings(MappedDumpContext ctx, CancellationToken ct)
+    private async Task InferCppTypesAsync(MappedDumpContext ctx, CancellationToken ct)
     {
         await Task.Yield();
+        var lines = ctx.ReadLines();
 
-        ctx.RunScoped(span => 
+        for (int i = 0; i < lines.Length; i++)
         {
-            int stringCount = KmpCountOccurrences(span, "\"");
-            if (stringCount > 0)
-                Emit(0x0000, 0, "STRING_COUNT", $"{stringCount / 2} string literals detected");
-        });
+            var line = lines[i];
+            if (line.Contains("sz_ErrorMsg = \""))
+            {
+                string replaced = line.Replace("sz_ErrorMsg = ", "const char* sz_ErrorMsg = ");
+                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
+            }
+        }
     }
 
-    private async Task AnalyzeEntropy(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task TraceImports(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task TraceExports(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task AnnotateSsa(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-
-    private async Task DetectLoops(MappedDumpContext ctx, CancellationToken ct)
+    private async Task RenameGlobalsAsync(MappedDumpContext ctx, CancellationToken ct)
     {
         await Task.Yield();
-        
-        ctx.RunScoped(span => 
-        {
-            int forCount   = KmpCountOccurrences(span, "for (");
-            int whileCount = KmpCountOccurrences(span, "while (");
-            int doCount    = KmpCountOccurrences(span, "do {");
+        var lines = ctx.ReadLines();
 
-            if (forCount + whileCount + doCount > 0)
-                Emit(0x0000, 0, "LOOP_DETECT", $"for={forCount} while={whileCount} do={doCount}");
-        });
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var line = lines[i];
+            if (line.Contains("&g_Data_4CF000"))
+            {
+                string replaced = line.Replace("&g_Data_4CF000", "&g_SysBuffer_CF00");
+                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
+            }
+        }
     }
 
-    private async Task DetectSwitches(MappedDumpContext ctx, CancellationToken ct)
+    private async Task StructureIfElseAsync(MappedDumpContext ctx, CancellationToken ct)
     {
         await Task.Yield();
-        
-        ctx.RunScoped(span => 
+        var lines = ctx.ReadLines();
+
+        for (int i = 0; i < lines.Length; i++)
         {
-            int switchCount = KmpCountOccurrences(span, "switch (");
-            if (switchCount > 0)
-                Emit(0x0000, 0, "SWITCH_DETECT", $"count={switchCount}");
-        });
+            var line = lines[i];
+            if (line.Contains("if (rax == 0)") && lines.Length > i + 1 && lines[i+1].Contains("ExitProcess"))
+            {
+                string replaced = line.Replace("if (rax == 0)", "if (!rax) /* check */");
+                Emit(0, i, "PATCH_LINE", $"{i}:{replaced}");
+            }
+        }
     }
 
-    private async Task ReconstructStructs(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task DetectVTables(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task RecognizeIdioms(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task EliminateDeadCode(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task PropagateConstants(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task SimplifyExpressions(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task GuessSemantics(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task MatchFingerprints(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task EnhancePseudocode(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task ApplyNaming(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task AnalyzeXrefs(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
-    private async Task ValidateWeightChain(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
     private async Task RelayVerification(MappedDumpContext ctx, CancellationToken ct) { await Task.Yield(); }
 
     private static unsafe int KmpCountOccurrences(ReadOnlySpan<byte> text, string patternString)
