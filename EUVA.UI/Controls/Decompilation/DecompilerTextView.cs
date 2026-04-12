@@ -58,9 +58,9 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
         }
     }
 
-    private const double FontSize = 13;
-    private const double CharWidth = 8;
-    private const double LineHeight = 17;
+    private double FontSize = 13;
+    private double CharWidth = 8;
+    private double LineHeight = 17;
     private const int PadLeft = 12;
     private const int PadTop = 8;
     private LayoutResult? _layout;
@@ -565,6 +565,27 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
+        if (Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            if (e.Delta > 0 && FontSize < 40)
+            {
+                FontSize += 1;
+                CharWidth = FontSize * (8.0 / 13.0);
+                LineHeight = FontSize * (17.0 / 13.0);
+            }
+            else if (e.Delta < 0 && FontSize > 6)
+            {
+                FontSize -= 1;
+                CharWidth = FontSize * (8.0 / 13.0);
+                LineHeight = FontSize * (17.0 / 13.0);
+            }
+            
+            RebuildGlyphs();
+            Redraw();
+            e.Handled = true;
+            return;
+        }
+
         int delta = e.Delta > 0 ? -3 : 3;
         _scrollLine = Math.Clamp(_scrollLine + delta, 0, Math.Max(0, _flatLines.Length - 1));
         Redraw();
