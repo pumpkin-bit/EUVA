@@ -91,6 +91,8 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
     private uint _cBg, _cText, _cLineNum, _cBlockHeader, _cCursorLine;
     private uint _cKeyword, _cType, _cVariable, _cVariableAi, _cNumber, _cString;
     private uint _cFunction, _cOperator, _cPunct, _cComment, _cAddress, _cError, _cSelectionBg;
+    private uint _cHighlightBg;
+    private string? _highlightSymbol;
 
     public event EventHandler? RenameApplied;
     public event EventHandler<long>? LineClicked;
@@ -408,6 +410,7 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
         _cAddress     = T("ConsoleError",       Color.FromRgb(0xF3, 0x8B, 0xA8)); 
         _cError       = T("ConsoleError",       Color.FromRgb(0xF3, 0x8B, 0xA8)); 
         _cSelectionBg = T("Surface1",           Color.FromRgb(0x45, 0x47, 0x5A)); 
+        _cHighlightBg = T("Surface2",           Color.FromRgb(0x58, 0x5B, 0x70)); 
     }
 
     private static uint T(string key, Color fallback)
@@ -441,7 +444,34 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
         _needsRedraw = true;
     }
 
-    private void Redraw() { _needsRedraw = true; InvalidateVisual(); }
+    private void UpdateHighlightSymbol()
+    {
+        _highlightSymbol = null;
+        if (!_selStart.HasValue || !_selEnd.HasValue || _selStart.Value != _selEnd.Value) return;
+
+        int row = _selStart.Value.Row;
+        int col = _selStart.Value.Col;
+        if (row < 0 || row >= _flatLines.Length) return;
+
+        var line = _flatLines[row];
+        if (line.Spans == null || string.IsNullOrEmpty(line.Text)) return;
+
+        foreach (var span in line.Spans)
+        {
+            if (col >= span.Start && col <= span.Start + span.Length)
+            {
+                if (span.Kind == PseudocodeSyntax.Variable || span.Kind == PseudocodeSyntax.VariableAi ||
+                    span.Kind == PseudocodeSyntax.Function || span.Kind == PseudocodeSyntax.Type ||
+                    span.Kind == PseudocodeSyntax.Keyword)
+                {
+                    _highlightSymbol = line.Text.Substring(span.Start, Math.Min(span.Length, line.Text.Length - span.Start));
+                    break;
+                }
+            }
+        }
+    }
+
+    private void Redraw() { UpdateHighlightSymbol(); _needsRedraw = true; InvalidateVisual(); }
 
     protected override void OnRender(DrawingContext dc)
     {
@@ -527,6 +557,20 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
             {
                 foreach (var span in line.Spans)
                 {
+                    string spanText = span.Start + span.Length <= line.Text.Length ? line.Text.Substring(span.Start, span.Length) : "";
+                    if (_highlightSymbol != null && spanText == _highlightSymbol)
+                    {
+                        int pxStart = codeStartX + span.Start * CellW;
+                        int pxWidth = span.Length * CellW;
+                        if (pxStart < 0) pxStart = 0;
+                        if (pxStart + pxWidth > _bmpW) pxWidth = _bmpW - pxStart;
+                        if (pxWidth > 0 && pxStart < _bmpW)
+                        {
+                            for (int fy = y; fy < y + CellH && fy < _bmpH; fy++)
+                                Array.Fill(_backBuffer, _cHighlightBg, fy * _bmpW + pxStart, pxWidth);
+                        }
+                    }
+
                     uint color = SyntaxColor(span.Kind);
                     for (int ci = 0; ci < span.Length && span.Start + ci < line.Text.Length; ci++)
                     {
@@ -543,6 +587,16 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
                     int px = codeStartX + ci * CellW;
                     if (px >= _bmpW) break;
                     Blit(px, y, line.Text[ci], _cText);
+                }
+            }
+
+            if (!hasSelection && _selStart.HasValue && lineIdx == _selStart.Value.Row)
+            {
+                int cursorPx = codeStartX + _selStart.Value.Col * CellW;
+                if (cursorPx >= 0 && cursorPx < _bmpW)
+                {
+                    for (int fy = y; fy < y + CellH && fy < _bmpH; fy++)
+                        _backBuffer[fy * _bmpW + cursorPx] = 0xFFFFFFFF;
                 }
             }
         }
@@ -624,12 +678,14 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
         int visLines = Math.Max(1, _bmpH / CellH - 2);
         switch (e.Key)
         {
-            case Key.Up:    _scrollLine = Math.Max(0, _scrollLine - 1); _cursorLine = Math.Max(0, _cursorLine - 1); ClearSelection(); break;
-            case Key.Down:  _scrollLine = Math.Min(_flatLines.Length - 1, _scrollLine + 1); _cursorLine = Math.Min(_flatLines.Length - 1, _cursorLine + 1); ClearSelection(); break;
-            case Key.PageUp:   _scrollLine = Math.Max(0, _scrollLine - visLines); _cursorLine = Math.Max(0, _cursorLine - visLines); ClearSelection(); break;
-            case Key.PageDown: _scrollLine = Math.Min(_flatLines.Length - 1, _scrollLine + visLines); _cursorLine = Math.Min(_flatLines.Length - 1, _cursorLine + visLines); ClearSelection(); break;
-            case Key.Home:  _scrollLine = 0; _cursorLine = 0; ClearSelection(); break;
-            case Key.End:   _scrollLine = Math.Max(0, _flatLines.Length - 1); _cursorLine = _scrollLine; ClearSelection(); break;
+            case Key.Left:  MoveCursor(0, -1); break;
+            case Key.Right: MoveCursor(0, 1); break;
+            case Key.Up:    MoveCursor(-1, 0); break;
+            case Key.Down:  MoveCursor(1, 0); break;
+            case Key.PageUp:   MoveCursor(-visLines, 0); break;
+            case Key.PageDown: MoveCursor(visLines, 0); break;
+            case Key.Home:  MoveCursor(0, -(_selStart?.Col ?? 1000)); break;
+            case Key.End:   MoveCursor(0, 1000); break;
             case Key.N:     PromptRename(); return;
             case Key.X:     ShowXrefs(); return;
             case Key.OemSemicolon: PromptComment(); return;
@@ -637,6 +693,28 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
         }
         Redraw();
         e.Handled = true;
+    }
+
+    private void MoveCursor(int rDelta, int cDelta)
+    {
+        int r = _cursorLine + rDelta;
+        if (r < 0) r = 0;
+        if (r >= _flatLines.Length) r = _flatLines.Length - 1;
+        
+        int c = (_selStart?.Row == _cursorLine) ? (_selStart?.Col ?? 0) : 0;
+        c += cDelta;
+        
+        int textLen = _flatLines[r].Text?.Length ?? 0;
+        if (c < 0) c = 0;
+        if (c > textLen) c = textLen;
+        
+        _cursorLine = r;
+        _selStart = (r, c);
+        _selEnd = (r, c);
+        
+        if (r < _scrollLine) _scrollLine = r;
+        int visLines = Math.Max(1, _bmpH / CellH - 1);
+        if (r >= _scrollLine + visLines) _scrollLine = r - visLines + 1;
     }
 
     private void ClearSelection()
