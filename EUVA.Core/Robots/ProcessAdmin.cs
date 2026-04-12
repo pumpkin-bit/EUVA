@@ -208,7 +208,10 @@ public sealed class ProcessAdmin : IProcessAdmin
             finalLines.Add("// start of code (main label): \n");
         }
 
-        finalLines.AddRange(transformed);
+        var labelRobot = new EUVA.Core.Robots.Patterns.UniversalLabelRobot();
+        var labeledLines = labelRobot.ApplyLabels(transformed);
+
+        finalLines.AddRange(labeledLines);
         System.IO.File.WriteAllLines(dumpPath, finalLines);
 
         var prev = Console.ForegroundColor;
