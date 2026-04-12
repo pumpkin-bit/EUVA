@@ -35,7 +35,7 @@ public sealed class EuvaSettings
     public string AiModelName { get; set; } = "gpt-4o";
 
     [JsonPropertyName("aiCustomPrompt")]
-    public string AiCustomPrompt { get; set; } = "Analyze this decompiled C code. Identify the roles of generic variables (v1, a2) and struct fields (field_1). Return ONLY a mapping of old names to new names. Do not use JSON, markdown, or explanations. Return strictly in this format: old_name=new_name. One per line.";
+    public string AiCustomPrompt { get; set; } = "You are an expert C++ reverse engineer. Refactor the provided decompiled C++ code. You MUST perfectly preserve every single loop, if-statement, and logical operation! DO NOT summarize or abstract logic away. DO NOT create new helper functions or split the function. Your ONLY job is to: 1) Rename meaningless variables (e.g. spill_1, v2) and dummy functions (e.g. sub_XXXX) to semantic names based on context. 2) Clean up ugly or redundant type casting. 3) Add explanatory comments. RULES: 1) You MUST return the C++ code inside a single ```cpp codeblock with NO conversational text outside it. 2) DO NOT revert structure member accesses back to raw pointer arithmetic. RENAME the structures (e.g. AutoStruct_X -> Node) but KEEP using their field access syntax. 3) For every line where you rename a variable or change casts, you MUST append the comment `// [AI]`. 4) You may remove entirely empty if-blocks or dead logic chunks. 5) Output compilable C++ with generic standard headers.";
 
     [JsonPropertyName("vtApiKey")]
     public string VtApiKey { get; set; } = string.Empty;
