@@ -893,20 +893,37 @@ public partial class MainWindow
                     _pseudocodeGen.Pipeline?.LastSignature,
                     _pseudocodeGen.UserRenames);
 
+                string dumpPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Dumps", $"func_{_currentFunctionOffset:X}.dump");
+                string cxxContext = System.IO.File.Exists(dumpPath) ? System.IO.File.ReadAllText(dumpPath) : "";
+                string combinedContext = $"-- IR Context --\n{miniIr}\n\n-- C++ Final Dump --\n{cxxContext}";
+
                 using var client = new AiClient();
-                const string explainPrompt = "Analyze this decompiled C code. Provide a concise, high-level summary of what this function does. Focus on its purpose, key WinAPI calls, and logic flow. Return ONLY the summary text. Do NOT use markdown or intros.";
+                const string explainPrompt = "Analyze this decompiled C/C++ code. Provide a concise, high-level summary of what this function does. Focus on its purpose, key WinAPI calls, and logic flow. Return ONLY the summary text. Do NOT use markdown or intros.";
                 
                 string response = await client.RequestRenamesAsync(
                     apiKey,
                     explainPrompt,
-                    miniIr,
+                    combinedContext,
                     EuvaSettings.Default.AiBaseUrl,
                     EuvaSettings.Default.AiModelName);
 
-                _pseudocodeGen.AiFunctionSummary = response.Trim();
+                string summary = response.Trim();
                 
-                RefreshDecompiledOutput();
-                LogMessage("[Decomp] AI Function summary generated.");
+                string currentDump = System.IO.File.Exists(dumpPath) ? System.IO.File.ReadAllText(dumpPath) : "";
+                string newDump = $"/*\n[AI SUMMARY]\n{summary}\n*/\n\n" + currentDump;
+                System.IO.File.WriteAllText(dumpPath, newDump);
+
+                var newLines = System.IO.File.ReadAllLines(dumpPath);
+                var pcLines = new System.Collections.Generic.List<EUVA.Core.Disassembly.PseudocodeLine>();
+                foreach (var l in newLines)
+                {
+                    pcLines.Add(new EUVA.Core.Disassembly.PseudocodeLine(l, BuildSpansFast(l)));
+                }
+                
+                _decompTextView?.OverrideText(pcLines.ToArray());
+                _decompTextView?.RefreshView();
+
+                LogMessage("[Decomp] AI Function summary generated and injected into dump.");
                 rejectAiBtn.Visibility = Visibility.Visible;
             }
             catch (Exception ex)
@@ -957,6 +974,7 @@ public partial class MainWindow
         };
         aiRefactorBtn.Click += async (_, _) =>
         {
+            MessageBox.Show("Attention, this is LLM. By clicking this button, you agree to accept the losses associated with refactoring the decompiled code.\nThe purpose of this button is to simplify and adapt the reading experience for the user.\nThis button is solely for \"rough\" understanding of the code.\n\nAI - Makes mistakes, double-check its answers.");
             if (_currentFunctionOffset < 0 || _decompTextView == null) return;
             
             string apiKey = AiSecurityHelper.Decrypt(EuvaSettings.Default.AiApiKeyEncrypted);
@@ -978,33 +996,42 @@ public partial class MainWindow
                     _pseudocodeGen.Pipeline?.LastSignature,
                     _pseudocodeGen.UserRenames);
 
-               
+                string dumpPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Dumps", $"func_{_currentFunctionOffset:X}.dump");
+                string cxxContext = System.IO.File.Exists(dumpPath) ? System.IO.File.ReadAllText(dumpPath) : "";
+                string combinedContext = $"-- IR Context (Structural clues) --\n{miniIr}\n\n-- Finished C++ (Target to rewrite) --\n{cxxContext}";
+
                 using var client = new AiClient();
-                string response = await client.RequestRenamesAsync(
+                
+                string aiText = await client.RequestRenamesAsync(
                     apiKey,
                     EuvaSettings.Default.AiCustomPrompt,
-                    miniIr,
+                    combinedContext,
                     EuvaSettings.Default.AiBaseUrl,
                     EuvaSettings.Default.AiModelName);
 
-              
-                var currentState = _pseudocodeGen.UserRenames?.ToDictionary(k => k.Key, v => v.Value) ?? new();
-                _aiRenameHistory.Push(currentState);
-
-              
-                var newRenames = new Dictionary<string, string>();
-                AiResponseParser.Parse(response, newRenames);
-
-                foreach (var kv in newRenames)
+                var match = System.Text.RegularExpressions.Regex.Match(aiText, @"```(?:cpp|c|c\+\+)?\s*\n(.*?)\n```", System.Text.RegularExpressions.RegexOptions.Singleline);
+                if (match.Success)
                 {
-                    string oldName = kv.Key.Replace(" /* AI */", "").Trim();
-                    string newName = kv.Value.Replace(" /* AI */", "").Trim();
-                    _pseudocodeGen.ApplyRename(oldName, newName, isAiGenerated: true);
+                    aiText = match.Groups[1].Value.Trim();
+                }
+                else
+                {
+                    aiText = aiText.Trim();
                 }
 
-              
-                RefreshDecompiledOutput();
-                LogMessage($"[Decomp] AI Refactoring complete: {newRenames.Count} variables renamed.");
+                System.IO.File.WriteAllText(dumpPath, aiText);
+
+                var newLines = System.IO.File.ReadAllLines(dumpPath);
+                var pcLines = new System.Collections.Generic.List<EUVA.Core.Disassembly.PseudocodeLine>();
+                foreach (var l in newLines)
+                {
+                    pcLines.Add(new EUVA.Core.Disassembly.PseudocodeLine(l, BuildSpansFast(l)));
+                }
+                
+                _decompTextView?.OverrideText(pcLines.ToArray());
+                _decompTextView?.RefreshView();
+
+                LogMessage($"[Decomp] AI Refactoring complete: Full C++ rewritten.");
                 rejectAiBtn.Visibility = Visibility.Visible;
                 jumpAiBtn.Visibility = Visibility.Visible;
                 aiExplainBtn.Visibility = Visibility.Visible;
@@ -1121,10 +1148,6 @@ public partial class MainWindow
                     {
                         var newLines = System.IO.File.ReadAllLines(dumpPath);
                         var pcLines = new System.Collections.Generic.List<EUVA.Core.Disassembly.PseudocodeLine>();
-                        
-                        string banner = "/* ------ */";
-                        pcLines.Add(new EUVA.Core.Disassembly.PseudocodeLine(banner, new[] { new EUVA.Core.Disassembly.PseudocodeSpan(0, banner.Length, EUVA.Core.Disassembly.PseudocodeSyntax.Comment) }));
-                        pcLines.Add(EUVA.Core.Disassembly.PseudocodeLine.Empty);
 
                         foreach (var l in newLines)
                         {
