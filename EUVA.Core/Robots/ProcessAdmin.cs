@@ -195,7 +195,7 @@ public sealed class ProcessAdmin : IProcessAdmin
 
         if (engine.UsedStructs.Any())
         {
-            finalLines.Add("/* --- Structures --- */");
+            finalLines.Add("================================ \n");
             foreach (var structName in engine.UsedStructs)
             {
                 var def = EUVA.Core.Robots.Patterns.Types.TypeDatabase.GetStruct(structName);
@@ -204,7 +204,8 @@ public sealed class ProcessAdmin : IProcessAdmin
                     finalLines.Add(def.EmitSyntax());
                 }
             }
-            finalLines.Add("/* ---------------------------- */\n");
+            finalLines.Add("================================ \n");
+            finalLines.Add("// start of code (main label): \n");
         }
 
         finalLines.AddRange(transformed);
