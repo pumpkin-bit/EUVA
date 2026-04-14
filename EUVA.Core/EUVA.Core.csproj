@@ -17,6 +17,8 @@
 
     <PackageReference Include="Iced" Version="1.21.0" />
 
+    <PackageReference Include="MessagePack" Version="3.1.4" />
+
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.3.0" />
     <PackageReference Include="Microsoft.Msagl" Version="1.1.6" />
   </ItemGroup>
