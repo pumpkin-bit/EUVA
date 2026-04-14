@@ -150,6 +150,21 @@ public static class SignatureCache
         BuildStructFieldLookup();
     }
 
+    public static void LoadBin(string filePath)
+    {
+        if (!File.Exists(filePath)) return;
+
+        var binBytes = File.ReadAllBytes(filePath);
+        var options = MessagePack.MessagePackSerializerOptions.Standard
+            .WithResolver(MessagePack.Resolvers.ContractlessStandardResolver.Instance);
+        Db = MessagePack.MessagePackSerializer.Deserialize<SignatureDatabase>(binBytes, options) ?? new SignatureDatabase();
+
+        BuildFunctionHashes();
+        BuildConstantNames();
+        BuildCompiledRegexes();
+        BuildStructFieldLookup();
+    }
+
     public static string? GetNameForString(string value)
     {
         foreach (var trigger in Db.StringTriggers)
@@ -267,8 +282,30 @@ public static class SignatureCache
 
     private static ulong ParseUInt64(string s)
     {
-        s = s.Trim();
-        if (s.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) return Convert.ToUInt64(s.Substring(2), 16);
-        return ulong.TryParse(s, out var v) ? v : 0;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(s)) return 0;
+            s = s.Trim();
+            
+            bool isNegative = s.StartsWith("-");
+            if (isNegative) s = s.Substring(1).Trim();
+            
+            ulong val = 0;
+            if (s.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            {
+                string hexPart = s.Substring(2).Replace("-", "").Trim();
+                val = string.IsNullOrEmpty(hexPart) ? 0 : Convert.ToUInt64(hexPart, 16);
+            }
+            else
+            {
+                val = ulong.Parse(s);
+            }
+            
+            return isNegative ? (ulong)(-(long)val) : val;
+        }
+        catch
+        {
+            return 0;
+        }
     }
 }
