@@ -240,7 +240,6 @@ Dive deeper into the theory and mechanics:
 * **[Iced](https://github.com/icedland/iced)** for disassembling and decompiling
 * **[YARA-x](https://libraries.io/nuget/DefenceTechSecurity.Yarax)** for integration with thousands of signatures
 * **[Roslyn](https://github.com/dotnet/roslyn)** for the script engine in the decompiler
-* **[Microsoft.Msagl](https://github.com/microsoft/automatic-graph-layout)** construction of graphs of decompiled code
 * **[Catppuccin](https://catppuccin.com/)** for interface theme
 
 ---
