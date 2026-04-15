@@ -31,7 +31,7 @@ jobs:
       run: dotnet test --no-build --verbosity normal
 
     - name: Publish
-      run: dotnet publish EUVA/EUVA.UI.csproj -c Release -r win-x64 --self-contained false -o ./publish
+      run: dotnet publish EUVA.UI/EUVA.UI.csproj -c Release -r win-x64 --self-contained false -o ./publish
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
