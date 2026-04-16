@@ -29,13 +29,22 @@ public sealed class ThemeManager
             { "Border",                 ( 49,  50,  68, 255) }, 
             { "SeparatorLine",          ( 69,  71,  90, 255) }, 
             
-            { "MenuBackground",         ( 30,  30,  46, 255) }, 
+            { "MenuBackground",         ( 17,  17,  27, 255) }, 
             { "MenuForeground",         (205, 214, 244, 255) }, 
             { "MenuHighlight",          ( 49,  50,  68, 255) }, 
             
             { "ForegroundPrimary",      (205, 214, 244, 255) }, 
             { "ForegroundSecondary",    (166, 173, 200, 255) }, 
             { "ForegroundDisabled",     (108, 112, 134, 255) }, 
+
+            { "AccentPrimary",          (137, 180, 250, 255) },
+            { "AccentHover",            (137, 180, 250, 255) },
+            { "ButtonBackground",       ( 49,  50,  68, 255) },
+            { "ButtonHover",            ( 69,  71,  90, 255) },
+            { "ButtonPressed",          ( 88,  91, 112, 255) },
+            { "InputBackground",        ( 24,  24,  37, 255) },
+            { "TabSelectedBackground",  ( 36,  39,  58, 255) },
+            { "ItemSelectedBackground", ( 54,  58,  79, 255) },
             
             { "Hex_Background",         ( 30,  30,  46, 255) }, 
             { "Hex_OffsetForeground",   (108, 112, 134, 255) }, 
