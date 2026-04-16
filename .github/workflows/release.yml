@@ -17,7 +17,38 @@ jobs:
         id: build_changelog
         uses: mikepenz/release-changelog-builder-action@v5
         with:
-          configuration: ".github/changelog-config.json"
+          mode: "COMMIT"
+          configurationJson: |
+            {
+              "categories": [
+                {
+                  "title": "## 🚀 New Feat",
+                  "labels": ["feature"],
+                  "filter": { "pattern": ".*(add|new|create|feat).*", "flags": "i" }
+                },
+                {
+                  "title": "## 🛠 Update and improvements",
+                  "labels": ["update"],
+                  "filter": { "pattern": ".*(update|improve|change|refactor).*", "flags": "i" }
+                },
+                {
+                  "title": "## 🐛 Fixed Bug",
+                  "labels": ["fix"],
+                  "filter": { "pattern": ".*(fix|bug|issue).*", "flags": "i" }
+                },
+                {
+                  "title": "## 🗑 Remove",
+                  "labels": ["remove"],
+                  "filter": { "pattern": "^remove.*", "flags": "i" }
+                }
+              ],
+              "template": "## What's new in EUVA?\n\n#{{CHANGELOG}}",
+              "empty_template": "## What's new in EUVA?\n\nNo changes in this release.",
+              "label_extractor": [
+                { "pattern": "^(add|new|create|feat).*", "target": "feature", "flags": "i" },
+                { "pattern": "^fix.*", "target": "fix", "flags": "i" }
+              ]
+            }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Release
