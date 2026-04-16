@@ -818,11 +818,9 @@ public partial class MainWindow
             FontSize = 12,
             Margin = new Thickness(10, 0, 0, 0),
             Padding = new Thickness(8, 2, 8, 2),
-            VerticalAlignment = VerticalAlignment.Center,
-            Background = new SolidColorBrush(Color.FromRgb(0x31, 0x32, 0x44)),
-            Foreground = new SolidColorBrush(Color.FromRgb(0xA6, 0xE3, 0xA1)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x45, 0x47, 0x5A)),
+            VerticalAlignment = VerticalAlignment.Center
         };
+        epBtn.SetResourceReference(Control.ForegroundProperty, "ConsoleSuccess");
         epBtn.Click += (_, _) =>
         {
             if (_decompDisasmView == null) return;
@@ -845,11 +843,9 @@ public partial class MainWindow
             FontSize = 12,
             Margin = new Thickness(6, 0, 0, 0),
             Padding = new Thickness(8, 2, 8, 2),
-            VerticalAlignment = VerticalAlignment.Center,
-            Background = new SolidColorBrush(Color.FromRgb(0x31, 0x32, 0x44)),
-            Foreground = new SolidColorBrush(Color.FromRgb(0x89, 0xB4, 0xFA)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x45, 0x47, 0x5A)),
+            VerticalAlignment = VerticalAlignment.Center
         };
+        analyzeBtn.SetResourceReference(Control.ForegroundProperty, "AccentPrimary");
         analyzeBtn.Click += (_, _) =>
         {
             long offset = HexView.SelectedOffset;
@@ -869,11 +865,9 @@ public partial class MainWindow
             Margin = new Thickness(6, 0, 0, 0),
             Padding = new Thickness(8, 2, 8, 2),
             VerticalAlignment = VerticalAlignment.Center,
-            Background = new SolidColorBrush(Color.FromRgb(0x31, 0x32, 0x44)),
-            Foreground = new SolidColorBrush(Color.FromRgb(0xF3, 0x8B, 0xA8)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x45, 0x47, 0x5A)),
             Visibility = Visibility.Collapsed
         };
+        rejectAiBtn.SetResourceReference(Control.ForegroundProperty, "ConsoleError");
         
         var jumpAiBtn = new Button
         {
@@ -882,11 +876,9 @@ public partial class MainWindow
             Margin = new Thickness(6, 0, 0, 0),
             Padding = new Thickness(8, 2, 8, 2),
             VerticalAlignment = VerticalAlignment.Center,
-            Background = new SolidColorBrush(Color.FromRgb(0x31, 0x32, 0x44)),
-            Foreground = new SolidColorBrush(Color.FromRgb(0x89, 0xDC, 0xEB)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x45, 0x47, 0x5A)),
             Visibility = Visibility.Collapsed
         };
+        jumpAiBtn.SetResourceReference(Control.ForegroundProperty, "TreeIconField");
 
         var aiExplainBtn = new Button
         {
@@ -895,11 +887,9 @@ public partial class MainWindow
             Margin = new Thickness(6, 0, 0, 0),
             Padding = new Thickness(8, 2, 8, 2),
             VerticalAlignment = VerticalAlignment.Center,
-            Background = new SolidColorBrush(Color.FromRgb(0x31, 0x32, 0x44)),
-            Foreground = new SolidColorBrush(Color.FromRgb(0xC1, 0x97, 0xF6)), 
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x45, 0x47, 0x5A)),
             Visibility = Visibility.Collapsed,
         };
+        aiExplainBtn.SetResourceReference(Control.ForegroundProperty, "PropertyKey");
         aiExplainBtn.Click += async (_, _) =>
         {
             if (_currentFunctionOffset < 0 || _decompTextView == null) return;
@@ -994,11 +984,9 @@ public partial class MainWindow
             FontSize = 12,
             Margin = new Thickness(6, 0, 0, 0),
             Padding = new Thickness(8, 2, 8, 2),
-            VerticalAlignment = VerticalAlignment.Center,
-            Background = new SolidColorBrush(Color.FromRgb(0x31, 0x32, 0x44)),
-            Foreground = new SolidColorBrush(Color.FromRgb(0xF5, 0xC2, 0xE7)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x45, 0x47, 0x5A)),
+            VerticalAlignment = VerticalAlignment.Center
         };
+        aiRefactorBtn.SetResourceReference(Control.ForegroundProperty, "PropertyValue");
         aiRefactorBtn.Click += async (_, _) =>
         {
             MessageBox.Show("Attention, this is LLM. By clicking this button, you agree to accept the losses associated with refactoring the decompiled code.\nThe purpose of this button is to simplify and adapt the reading experience for the user.\nThis button is solely for \"rough\" understanding of the code.\n\nAI - Makes mistakes, double-check its answers.");
@@ -1084,11 +1072,9 @@ public partial class MainWindow
             FontSize = 12,
             Margin = new Thickness(6, 0, 0, 0),
             Padding = new Thickness(8, 2, 8, 2),
-            VerticalAlignment = VerticalAlignment.Center,
-            Background = new SolidColorBrush(Color.FromRgb(0x31, 0x32, 0x44)),
-            Foreground = new SolidColorBrush(Color.FromRgb(0x94, 0xE2, 0xD5)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x45, 0x47, 0x5A)),
+            VerticalAlignment = VerticalAlignment.Center
         };
+        aiSettingsBtn.SetResourceReference(Control.ForegroundProperty, "TreeIconField");
         aiSettingsBtn.Click += (_, _) =>
         {
             new AiSettingsWindow { Owner = this }.ShowDialog();
@@ -1104,14 +1090,15 @@ public partial class MainWindow
             }
         };
 
-        return new Border
+        var containerBorder = new Border
         {
-            Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x2E)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x31, 0x32, 0x44)),
             BorderThickness = new Thickness(0, 0, 0, 1),
             Padding = new Thickness(2),
             Child = panel
         };
+        containerBorder.SetResourceReference(Border.BackgroundProperty, "Background");
+        containerBorder.SetResourceReference(Border.BorderBrushProperty, "Border");
+        return containerBorder;
     }
 
     

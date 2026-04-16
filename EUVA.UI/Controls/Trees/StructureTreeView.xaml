@@ -3,17 +3,17 @@
 <UserControl x:Class="EUVA.UI.Controls.Trees.StructureTreeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Background="#181825">
+             Background="Transparent">
     <Grid>
         <TreeView x:Name="TreeViewControl"
-                  Background="Transparent"
-                  Foreground="#CDD6F4"
+                  Background="{DynamicResource TreeBackground}"
+                  Foreground="{DynamicResource TreeText}"
                   BorderThickness="0"
                   SelectedItemChanged="TreeView_SelectedItemChanged"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <TreeView.Resources>
                 <Style TargetType="TreeViewItem">
-                    <Setter Property="Foreground" Value="#CDD6F4"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TreeText}"/>
                     <Setter Property="Background" Value="Transparent"/>
                     <Setter Property="Padding"    Value="2,4"/>
                     <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -47,7 +47,7 @@
                                                         <Border Background="Transparent">
                                                             <Path x:Name="arrow"
                                                                   Data="M 5 4 L 11 8 L 5 12 Z"
-                                                                  Fill="#45475A"
+                                                                  Fill="{DynamicResource ForegroundDisabled}"
                                                                   HorizontalAlignment="Center"
                                                                   VerticalAlignment="Center"/>
                                                         </Border>
@@ -56,7 +56,7 @@
                                                                 <Setter TargetName="arrow" Property="Data"
                                                                         Value="M 4 5 L 12 5 L 8 11 Z"/>
                                                                 <Setter TargetName="arrow" Property="Fill"
-                                                                        Value="#89B4FA"/>
+                                                                        Value="{DynamicResource TreeIconSection}"/>
                                                             </Trigger>
                                                         </ControlTemplate.Triggers>
                                                     </ControlTemplate>
@@ -80,18 +80,18 @@
                                         <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
                                     </Trigger>
                                     <Trigger Property="IsSelected" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#363A4F"/>
-                                        <Setter Property="Foreground" Value="#CDD6F4"/>
+                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TreeItemHighlight}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource TreeText}"/>
                                     </Trigger>
                                     <MultiTrigger>
                                         <MultiTrigger.Conditions>
                                             <Condition Property="IsSelected"          Value="True"/>
                                             <Condition Property="IsSelectionActive"   Value="False"/>
                                         </MultiTrigger.Conditions>
-                                        <Setter TargetName="Bd" Property="Background" Value="#2A2D3E"/>
+                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TreeItemHighlight}"/>
                                     </MultiTrigger>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#313244"/>
+                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ButtonHover}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -104,15 +104,15 @@
                 <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                     <StackPanel Orientation="Horizontal" Margin="1,0">
                         <Ellipse Width="6" Height="6"
-                                 Fill="#89B4FA"
+                                 Fill="{DynamicResource TreeIconSection}"
                                  VerticalAlignment="Center"
                                  Margin="0,0,6,0"/>
                         <TextBlock Text="{Binding Name}"
-                                   Foreground="#CDD6F4"
+                                   Foreground="{DynamicResource TreeText}"
                                    VerticalAlignment="Center"
                                    Margin="0,0,8,0"/>
                         <TextBlock Text="{Binding DisplayValue}"
-                                   Foreground="#6C7086"
+                                   Foreground="{DynamicResource ForegroundSecondary}"
                                    FontFamily="JetBrains Mono, Cascadia Mono, Consolas"
                                    FontSize="11"
                                    FontStyle="Italic"

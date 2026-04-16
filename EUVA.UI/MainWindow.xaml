@@ -11,7 +11,7 @@
         Title="EUVA"
         Height="920" Width="1640"
         MinHeight="600" MinWidth="1000"
-        Background="#1E1E2E"
+        Background="{DynamicResource Background}"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized" 
         AllowDrop="True"
@@ -21,9 +21,9 @@
     <Window.Resources>
 
         <Style TargetType="Button">
-            <Setter Property="Background"      Value="#313244"/>
-            <Setter Property="Foreground"      Value="#CDD6F4"/>
-            <Setter Property="BorderBrush"     Value="#45475A"/>
+            <Setter Property="Background"      Value="{DynamicResource ButtonBackground}"/>
+            <Setter Property="Foreground"      Value="{DynamicResource ForegroundPrimary}"/>
+            <Setter Property="BorderBrush"     Value="{DynamicResource SeparatorLine}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding"         Value="10,4"/>
             <Setter Property="FontFamily"      Value="Segoe UI"/>
@@ -60,19 +60,19 @@
         </Style>
 
         <Style TargetType="TextBox">
-            <Setter Property="Background"      Value="#181825"/>
-            <Setter Property="Foreground"      Value="#CDD6F4"/>
-            <Setter Property="BorderBrush"     Value="#45475A"/>
+            <Setter Property="Background"      Value="{DynamicResource InputBackground}"/>
+            <Setter Property="Foreground"      Value="{DynamicResource ForegroundPrimary}"/>
+            <Setter Property="BorderBrush"     Value="{DynamicResource SeparatorLine}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CaretBrush"      Value="#89B4FA"/>
-            <Setter Property="SelectionBrush"  Value="#89B4FA"/>
+            <Setter Property="CaretBrush"      Value="{DynamicResource AccentPrimary}"/>
+            <Setter Property="SelectionBrush"  Value="{DynamicResource AccentPrimary}"/>
             <Setter Property="Padding"         Value="5,3"/>
             <Setter Property="FontFamily"      Value="JetBrains Mono, Cascadia Mono, Consolas"/>
         </Style>
 
         <Style TargetType="TabItem">
             <Setter Property="Background"   Value="Transparent"/>
-            <Setter Property="Foreground"   Value="#6C7086"/>
+            <Setter Property="Foreground"   Value="{DynamicResource ForegroundDisabled}"/>
             <Setter Property="FontFamily"   Value="Segoe UI"/>
             <Setter Property="FontSize"     Value="12"/>
             <Setter Property="Padding"      Value="0"/>
@@ -88,13 +88,13 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="BorderBrush" Value="#89B4FA"/>
-                                <Setter TargetName="bd" Property="Background"  Value="#24273A"/>
-                                <Setter Property="Foreground" Value="#CDD6F4"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource AccentPrimary}"/>
+                                <Setter TargetName="bd" Property="Background"  Value="{DynamicResource TabSelectedBackground}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimary}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#313244"/>
-                                <Setter Property="Foreground" Value="#A6ADC8"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource ButtonHover}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondary}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -103,39 +103,39 @@
         </Style>
 
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background"      Value="#181825"/>
-            <Setter Property="Foreground"      Value="#6C7086"/>
+            <Setter Property="Background"      Value="{DynamicResource MenuBackground}"/>
+            <Setter Property="Foreground"      Value="{DynamicResource ForegroundDisabled}"/>
             <Setter Property="Padding"         Value="8,4"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
-            <Setter Property="BorderBrush"     Value="#313244"/>
+            <Setter Property="BorderBrush"     Value="{DynamicResource SeparatorLine}"/>
             <Setter Property="FontFamily"      Value="Segoe UI"/>
             <Setter Property="FontSize"        Value="11"/>
         </Style>
 
         <Style TargetType="ListViewItem">
-            <Setter Property="Foreground"   Value="#CDD6F4"/>
+            <Setter Property="Foreground"   Value="{DynamicResource ForegroundPrimary}"/>
             <Setter Property="Background"   Value="Transparent"/>
             <Setter Property="Padding"      Value="0"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#313244"/>
+                    <Setter Property="Background" Value="{DynamicResource ButtonHover}"/>
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#363A4F"/>
+                    <Setter Property="Background" Value="{DynamicResource ItemSelectedBackground}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
       
         <Style TargetType="Menu">
-            <Setter Property="Background" Value="#11111B"/>
-            <Setter Property="Foreground" Value="#CDD6F4"/>
+            <Setter Property="Background" Value="{DynamicResource MenuBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimary}"/>
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
 
         <Style TargetType="MenuItem">
-            <Setter Property="Foreground" Value="#CDD6F4"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimary}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize"   Value="12"/>
@@ -158,11 +158,11 @@
                                 
                                 <ContentPresenter x:Name="Icon" ContentSource="Icon" HorizontalAlignment="Center" VerticalAlignment="Center" Width="16" Height="16" Margin="3"/>
                                 <ContentPresenter Grid.Column="1" x:Name="HeaderHost" ContentSource="Header" Margin="4,2,4,2" RecognizesAccessKey="True" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="2" x:Name="InputGestureText" Text="{TemplateBinding InputGestureText}" Margin="15,2,5,2" VerticalAlignment="Center" Foreground="#A6ADC8"/>
-                                <Path Grid.Column="3" x:Name="RightArrow" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#CDD6F4" Data="M 0,0 L 4,4 L 0,8 Z"/>
+                                <TextBlock Grid.Column="2" x:Name="InputGestureText" Text="{TemplateBinding InputGestureText}" Margin="15,2,5,2" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundSecondary}"/>
+                                <Path Grid.Column="3" x:Name="RightArrow" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="{DynamicResource ForegroundPrimary}" Data="M 0,0 L 4,4 L 0,8 Z"/>
 
                                 <Popup x:Name="PART_Popup" AllowsTransparency="True" Focusable="False" IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" PopupAnimation="Fade" Placement="Right">
-                                    <Border x:Name="SubMenuBorder" Background="#181825" BorderBrush="#45475A" BorderThickness="1" SnapsToDevicePixels="True" Margin="0,0,5,5">
+                                    <Border x:Name="SubMenuBorder" Background="{DynamicResource MenuBackground}" BorderBrush="{DynamicResource SeparatorLine}" BorderThickness="1" SnapsToDevicePixels="True" Margin="0,0,5,5">
                                         <Border.Effect>
                                             <DropShadowEffect BlurRadius="5" Opacity="0.4" ShadowDepth="2" Direction="315" Color="Black"/>
                                         </Border.Effect>
@@ -198,15 +198,15 @@
                                 <Setter TargetName="RightArrow" Property="Visibility" Value="Visible"/>
                             </Trigger>
                             <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="templateRoot" Property="Background" Value="#313244"/>
-                                <Setter Property="Foreground" Value="#89B4FA"/>
-                                <Setter TargetName="InputGestureText" Property="Foreground" Value="#89B4FA"/>
-                                <Setter TargetName="RightArrow" Property="Fill" Value="#89B4FA"/>
+                                <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource MenuHighlight}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                <Setter TargetName="InputGestureText" Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                <Setter TargetName="RightArrow" Property="Fill" Value="{DynamicResource AccentPrimary}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#585B70"/>
-                                <Setter TargetName="InputGestureText" Property="Foreground" Value="#585B70"/>
-                                <Setter TargetName="RightArrow" Property="Fill" Value="#585B70"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundDisabled}"/>
+                                <Setter TargetName="InputGestureText" Property="Foreground" Value="{DynamicResource ForegroundDisabled}"/>
+                                <Setter TargetName="RightArrow" Property="Fill" Value="{DynamicResource ForegroundDisabled}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -215,7 +215,7 @@
         </Style>
 
         <Style TargetType="Separator">
-            <Setter Property="Background" Value="#313244"/>
+            <Setter Property="Background" Value="{DynamicResource SeparatorLine}"/>
             <Setter Property="Height"     Value="1"/>
             <Setter Property="Margin"     Value="4,2"/>
         </Style>
@@ -230,8 +230,8 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
                         <Border x:Name="bd"
-                                Background="#2A2A3E"
-                                BorderBrush="#45475A"
+                                Background="{DynamicResource InputBackground}"
+                                BorderBrush="{DynamicResource SeparatorLine}"
                                 BorderThickness="1"
                                 CornerRadius="3"
                                 SnapsToDevicePixels="True">
@@ -243,15 +243,15 @@
                                 <Border Grid.Column="0" Background="Transparent"/>
                                 <Path Grid.Column="1"
                                       Data="M 0 0 L 4 4 L 8 0 Z"
-                                      Fill="#6C7086"
+                                      Fill="{DynamicResource ForegroundDisabled}"
                                       HorizontalAlignment="Center"
                                       VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="BorderBrush" Value="#89B4FA"/>
-                                <Setter TargetName="bd" Property="Background" Value="#313244"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource AccentPrimary}"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource ButtonHover}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -276,10 +276,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#45475A"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource ButtonHover}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#363A4F"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource ItemSelectedBackground}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -288,9 +288,9 @@
         </Style>
 
         <Style TargetType="ComboBox">
-            <Setter Property="Background"      Value="#2A2A3E"/>
-            <Setter Property="Foreground"      Value="#CDD6F4"/>
-            <Setter Property="BorderBrush"     Value="#45475A"/>
+            <Setter Property="Background"      Value="{DynamicResource InputBackground}"/>
+            <Setter Property="Foreground"      Value="{DynamicResource ForegroundPrimary}"/>
+            <Setter Property="BorderBrush"     Value="{DynamicResource SeparatorLine}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontFamily"      Value="Segoe UI"/>
             <Setter Property="FontSize"        Value="12"/>
@@ -323,8 +323,8 @@
                                       MinWidth="{TemplateBinding ActualWidth}"
                                       MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                     <Border x:Name="DropDownBorder"
-                                            Background="#1E1E2E"
-                                            BorderBrush="#45475A"
+                                            Background="{DynamicResource MenuBackground}"
+                                            BorderBrush="{DynamicResource SeparatorLine}"
                                             BorderThickness="1"
                                             CornerRadius="0,0,4,4"/>
                                     <ScrollViewer Margin="1" SnapsToDevicePixels="True">
@@ -352,8 +352,8 @@
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0"
-                Background="#181825"
-                BorderBrush="#313244" BorderThickness="0,0,0,1">
+                Background="{DynamicResource Sidebar}"
+                BorderBrush="{DynamicResource Border}" BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -362,9 +362,9 @@
                 </Grid.ColumnDefinitions>
 
                 <Border Grid.Column="0"
-                        Width="32" Background="#89B4FA"
+                        Width="32" Background="{DynamicResource AccentPrimary}"
                         VerticalAlignment="Stretch">
-                    <TextBlock Text="⬡" Foreground="#1E1E2E"
+                    <TextBlock Text="⬡" Foreground="{DynamicResource Background}"
                                FontSize="14" FontWeight="Bold"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"/>
@@ -372,7 +372,7 @@
 
                 <Menu Grid.Column="1"
                       Background="Transparent"
-                      Foreground="#CDD6F4"
+                      Foreground="{DynamicResource ForegroundPrimary}"
                       VerticalAlignment="Center"
                       Margin="4,0">
 
@@ -436,7 +436,7 @@
                 <Border Grid.Column="2" Padding="10,0">
                     <TextBlock x:Name="StatusText"
                                Text="No file loaded"
-                               Foreground="#A6E3A1"
+                               Foreground="{DynamicResource ConsoleSuccess}"
                                FontFamily="Segoe UI" FontSize="11"
                                VerticalAlignment="Center"/>
                 </Border>
@@ -453,8 +453,8 @@
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0"
-                    Background="#181825"
-                    BorderBrush="#313244" BorderThickness="0,0,1,0">
+                    Background="{DynamicResource Sidebar}"
+                    BorderBrush="{DynamicResource Border}" BorderThickness="0,0,1,0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -462,11 +462,11 @@
                     </Grid.RowDefinitions>
                    
                     <Border Grid.Row="0"
-                            Background="#1E1E2E"
-                            BorderBrush="#313244" BorderThickness="0,0,0,1"
+                            Background="{DynamicResource Background}"
+                            BorderBrush="{DynamicResource Border}" BorderThickness="0,0,0,1"
                             Padding="10,5">
                         <TextBlock Text="Data Patterns"
-                                   Foreground="#A6ADC8"
+                                   Foreground="{DynamicResource ForegroundSecondary}"
                                    FontFamily="Segoe UI" FontSize="11"
                                    FontWeight="SemiBold"/>
                     </Border>
@@ -479,10 +479,10 @@
       
             <GridSplitter Grid.Column="1" Width="1"
                           HorizontalAlignment="Stretch"
-                          Background="#45475A" Cursor="SizeWE"/>
+                          Background="{DynamicResource SeparatorLine}" Cursor="SizeWE"/>
 
         
-            <Border Grid.Column="2" Background="#1E1E2E">
+            <Border Grid.Column="2" Background="{DynamicResource Background}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -492,7 +492,7 @@
                     <hex:VirtualizedHexView x:Name="HexView"
                         Grid.Column="0"
                         OffsetSelected="HexView_OffsetSelected"/>
-                    <Rectangle Grid.Column="1" Fill="#313244" Width="1"/>
+                    <Rectangle Grid.Column="1" Fill="{DynamicResource Border}" Width="1"/>
                     <decomp:ByteMinimapControl x:Name="ByteMinimap"
                         Grid.Column="2"
                         NavigateRequested="ByteMinimap_NavigateRequested"/>
@@ -502,12 +502,12 @@
             
             <GridSplitter Grid.Column="3" Width="1"
                           HorizontalAlignment="Stretch"
-                          Background="#45475A" Cursor="SizeWE"/>
+                          Background="{DynamicResource SeparatorLine}" Cursor="SizeWE"/>
 
          
             <Border Grid.Column="4"
-                    Background="#181825"
-                    BorderBrush="#313244" BorderThickness="1,0,0,0">
+                    Background="{DynamicResource Sidebar}"
+                    BorderBrush="{DynamicResource Border}" BorderThickness="1,0,0,0">
                 <TabControl x:Name="RightTabControl"
                             Background="Transparent"
                             BorderThickness="0"
@@ -518,7 +518,7 @@
                         <ListView x:Name="DataInspectorList"
                                   Background="Transparent"
                                   BorderThickness="0"
-                                  Foreground="#CDD6F4"
+                                  Foreground="{DynamicResource ForegroundPrimary}"
                                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListView.ItemContainerStyle>
                                 <Style TargetType="ListViewItem">
@@ -535,7 +535,7 @@
                             </ListView.ItemContainerStyle>
                             <ListView.ItemTemplate>
                                 <DataTemplate>
-                                    <Border BorderBrush="#313244"
+                                    <Border BorderBrush="{DynamicResource Border}"
                                             BorderThickness="0,0,0,1"
                                             Padding="10,5">
                                         <Grid>
@@ -544,12 +544,12 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{Binding Name}"
-                                                       Foreground="#B4BEFE"
+                                                       Foreground="{DynamicResource PropertyKey}"
                                                        FontFamily="Segoe UI" FontSize="11"
                                                        VerticalAlignment="Center"/>
                                             <TextBlock Grid.Column="1"
                                                        Text="{Binding Value}"
-                                                       Foreground="#FAB387"
+                                                       Foreground="{DynamicResource PropertyValue}"
                                                        FontFamily="JetBrains Mono, Cascadia Mono, Consolas"
                                                        FontSize="11"
                                                        VerticalAlignment="Center"/>
@@ -569,12 +569,12 @@
                             </Grid.RowDefinitions>
 
                             <Border Grid.Row="0"
-                                    Background="#1E1E2E"
-                                    BorderBrush="#313244" BorderThickness="0,0,0,1"
+                                    Background="{DynamicResource Background}"
+                                    BorderBrush="{DynamicResource Border}" BorderThickness="0,0,0,1"
                                     Padding="10,8">
                                 <StackPanel>
                                     <TextBlock Text="Search address / value"
-                                               Foreground="#6C7086"
+                                               Foreground="{DynamicResource ForegroundDisabled}"
                                                FontFamily="Segoe UI" FontSize="10"
                                                Margin="0,0,0,5"/>
                                     <Grid>
@@ -594,10 +594,10 @@
                             <DataGrid Grid.Row="1"
                                       x:Name="SearchResultsGrid"
                                       Background="Transparent"
-                                      Foreground="#CDD6F4"
+                                      Foreground="{DynamicResource ForegroundPrimary}"
                                       BorderThickness="0"
                                       RowBackground="Transparent"
-                                      AlternatingRowBackground="#0D181825"
+                                      AlternatingRowBackground="Transparent"
                                       GridLinesVisibility="None"
                                       AutoGenerateColumns="False"
                                       IsReadOnly="True"
@@ -622,8 +622,8 @@
                             </Grid.RowDefinitions>
 
                             <Border Grid.Row="0"
-                                    Background="#1E1E2E"
-                                    BorderBrush="#313244" BorderThickness="0,0,0,1"
+                                    Background="{DynamicResource Background}"
+                                    BorderBrush="{DynamicResource Border}" BorderThickness="0,0,0,1"
                                     Padding="10,4">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -632,13 +632,13 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock x:Name="TxtDetectionStatus"
                                                Text="Run Detectors or load YARA rules to begin"
-                                               Foreground="#6C7086"
+                                               Foreground="{DynamicResource ForegroundDisabled}"
                                                FontFamily="Segoe UI" FontSize="10"
                                                VerticalAlignment="Center"
                                                TextTrimming="CharacterEllipsis"/>
                                     <TextBlock x:Name="TxtYaraMatchCount"
                                                Grid.Column="1" Text=""
-                                               Foreground="#A6E3A1"
+                                               Foreground="{DynamicResource ConsoleSuccess}"
                                                FontFamily="Segoe UI" FontSize="10"
                                                FontWeight="SemiBold"
                                                VerticalAlignment="Center"
@@ -650,7 +650,7 @@
                                       Grid.Row="1"
                                       Background="Transparent"
                                       BorderThickness="0"
-                                      Foreground="#CDD6F4"
+                                      Foreground="{DynamicResource ForegroundPrimary}"
                                       VirtualizingPanel.IsVirtualizing="True"
                                       VirtualizingPanel.VirtualizationMode="Recycling"
                                       MouseDoubleClick="DetectionList_MouseDoubleClick"
@@ -663,10 +663,10 @@
                                         <Setter Property="BorderThickness" Value="0"/>
                                         <Style.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#313244"/>
+                                                <Setter Property="Background" Value="{DynamicResource ButtonHover}"/>
                                             </Trigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="#363A4F"/>
+                                                <Setter Property="Background" Value="{DynamicResource ItemSelectedBackground}"/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
@@ -679,7 +679,7 @@
                                             <StackPanel>
                                                 <StackPanel Orientation="Horizontal">
                                                     <Ellipse Width="6" Height="6"
-                                                             Fill="#89B4FA"
+                                                             Fill="{DynamicResource AccentPrimary}"
                                                              VerticalAlignment="Center"
                                                              Margin="0,0,7,0"/>
                                                     <TextBlock Text="{Binding Name}"
@@ -689,7 +689,7 @@
                                                                FontSize="12"/>
                                                 </StackPanel>
                                                 <TextBlock Text="{Binding Type}"
-                                                           Foreground="#6C7086"
+                                                           Foreground="{DynamicResource ForegroundSecondary}"
                                                            FontFamily="Segoe UI" FontSize="10"
                                                            Margin="13,2,0,0"/>
                                             </StackPanel>
@@ -709,19 +709,19 @@
         </Grid>
 
         <Border Grid.Row="3"
-                Background="#181825"
-                BorderBrush="#313244" BorderThickness="0,1,0,0">
+                Background="{DynamicResource Sidebar}"
+                BorderBrush="{DynamicResource Border}" BorderThickness="0,1,0,0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <Border Grid.Row="0"
-                        Background="#1E1E2E"
-                        BorderBrush="#313244" BorderThickness="0,0,0,1"
+                        Background="{DynamicResource Background}"
+                        BorderBrush="{DynamicResource Border}" BorderThickness="0,0,0,1"
                         Padding="10,3">
                     <TextBlock Text="Console Output"
-                               Foreground="#6C7086"
+                               Foreground="{DynamicResource ForegroundDisabled}"
                                FontFamily="Segoe UI" FontSize="11"
                                FontWeight="SemiBold"/>
                 </Border>
@@ -729,7 +729,7 @@
                          x:Name="ConsoleLog"
                          IsReadOnly="True"
                          Background="Transparent"
-                         Foreground="#CDD6F4"
+                         Foreground="{DynamicResource ForegroundPrimary}"
                          BorderThickness="0"
                          FontFamily="JetBrains Mono, Cascadia Mono, Consolas"
                          FontSize="11"
@@ -744,8 +744,8 @@
         </Border>
 
         <Border Grid.Row="4"
-                Background="#181825"
-                BorderBrush="#313244" BorderThickness="0,1,0,0">
+                Background="{DynamicResource Sidebar}"
+                BorderBrush="{DynamicResource Border}" BorderThickness="0,1,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>   
@@ -760,9 +760,9 @@
                 </Grid.ColumnDefinitions>
 
                 <Border Grid.Column="0"
-                        Background="#89B4FA" Padding="10,0">
+                        Background="{DynamicResource AccentPrimary}" Padding="10,0">
                     <TextBlock Text="EUVA"
-                               Foreground="#1E1E2E"
+                               Foreground="{DynamicResource Background}"
                                FontFamily="Segoe UI" FontSize="10"
                                FontWeight="Bold"
                                VerticalAlignment="Center"/>
@@ -771,14 +771,14 @@
                 <TextBlock Grid.Column="5"
                            x:Name="SbSelectionSize"
                            Text=""
-                           Foreground="#6C7086"
+                           Foreground="{DynamicResource ForegroundDisabled}"
                            FontFamily="Segoe UI" FontSize="10"
                            VerticalAlignment="Center"/>
                            
                 <TextBlock Grid.Column="7"
                            x:Name="SbEncoding"
                            Text="Latin-1"
-                           Foreground="#6C7086"
+                           Foreground="{DynamicResource ForegroundDisabled}"
                            FontFamily="Segoe UI" FontSize="10"
                            VerticalAlignment="Center"
                            Margin="0,0,14,0"/>
@@ -786,7 +786,7 @@
                 <TextBlock Grid.Column="8"
                            x:Name="SbFileSize"
                            Text=""
-                           Foreground="#89B4FA"
+                           Foreground="{DynamicResource AccentPrimary}"
                            FontFamily="JetBrains Mono, Cascadia Mono, Consolas"
                            FontSize="10"
                            VerticalAlignment="Center"
