@@ -52,11 +52,13 @@ Optionally pass `--workspace` to specify the dumps directory:
 |---|---|
 | `list_dumps` | Returns a list of all decompiled function `.dump` files in the workspace |
 | `read_dump` | Reads a dump file and returns its content along with metadata (address, line count) |
-| `modify_dump` | Modifies a dump file in-place. Supports 7 actions: `COMMENT`, `REMOVE_COMMENT`, `EDIT_COMMENT`, `RENAME`, `RENAME_LABEL`, `INSERT_LINE`, `DELETE_LINE` |
+| `modify_dump` | Modifies a dump file in-place. Supports actions: `COMMENT`, `REMOVE_COMMENT`, `EDIT_COMMENT`, `RENAME`, `RENAME_SCOPED`, `REPLACE_LINE`, `RENAME_LABEL`, `INSERT_LINE`, `DELETE_LINE` |
+| `batch_modify` | Apply multiple `modify_dump` actions in a single call. Read once, apply all, write once |
 | `search_pattern` | Searches for a string or regex pattern inside a dump. Returns matching line numbers and text |
+| `batch_search` | Search for multiple patterns in one call. Returns a dict mapping each pattern to its matches |
 | `get_function_summary` | Structural analysis of a function: API calls, string literals, local variables, control flow, MCP annotations |
 | `xref_symbol` | Cross-references a symbol across all dump files. Finds every occurrence of a variable/function/constant |
-| `batch_rename` | Bulk-renames variables via a JSON dictionary in a single atomic operation |
+| `batch_rename` | Bulk-renames variables via a JSON dictionary. Supports optional `start_line`/`end_line` for scoped renames |
 
 ---
 
