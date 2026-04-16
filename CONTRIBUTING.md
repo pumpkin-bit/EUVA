@@ -1,57 +1,73 @@
 # Contributing to EUVA
 
-First of all, thank you for showing interest in the project! EUVA is an open-source hex editor licensed under GPL v3, and contributions are more than welcome.
+EUVA is an open platform. We accept all PRs that bring value to the community. No gatekeeping, no bureaucracy. If it makes the tool better it gets merged.
 
-## How can you help?
+## What counts as a contribution?
 
-### 1. Developing Plugins
-The easiest way to contribute is by creating plugins. EUVA features a plugin system that allows you to extend the editor's functionality without modifying the core engine.
+Everything. Seriously.
 
-You can write plugins in two ways: an external DLL that needs to be placed in the Plugins folder, and a DLL where the class implements the IDetector interface. The program will scan the .dll in the folder, find the interface implementation using reflection, and pick it up without editing the core.
-Alternatively, you can contribute to the project's source code (the easiest way): drop it into the Sample folder and embed the line `_detectorManager.RegisterDetector(new MyCustomDetector());` in `MainWindow.xaml.cs`, `DetectorManager.cs`.
+- Fixed a typo in docs? PR.
+- Wrote a new regex rule for the nonlinear decompiler? PR.
+- Built a whole new analysis module? PR.
+- Added support for a new binary format? PR.
+- Created a `.euv` patching script? PR.
+- Improved the UI? PR.
+- Found and fixed a bug? PR.
+- Have you added new signatures to database? PR.
 
-* If you have a plugin idea, feel free to submit a Pull Request adding it to the official list.
+We don't care if it's 1 line or 1000 lines. If it helps someone in the community we want it.
 
-### 2. Developing Decompiler Scripts 
-Create unique scripts for various types of binary files. The decompiler API is actively developing. You can contribute to decompilation methods or expand the current scripting API to solve researchers' problems. Your scripts can be accepted into the decompiler and become part of it. The Scripts folder is intended for decompilation scripts. Simply move your .cs script there and see the result.
-How to create scripts is described in [1.9 Glass Engine C# Scripting Integration](docs/Decompiler.md#19-glass-engine-c-scripting-integration).
+## Ways to contribute examples
 
-### 3. Sharing Patching Scripts (.euv)
-EUVA is an open platform for security research. We use a decentralized approach for sharing `.euv` scripts via the [EUVA-Library](https://github.com/pumpkin-bit/EUVA-Library) repository.
+### 1. Decompiler Rules & Robots
+The nonlinear decompiler is built on open regex rules and micro-algorithm robots. You can:
+- Add new regex patterns to improve code readability
+- Create new robots for `ProcessAdmin.cs` to handle specific code patterns
+- No C# experience needed for regex rules just text patterns
 
-**Submission Process:**
-1.  **Create a Gist**: Create a [GitHub Gist](https://gist.github.com/) containing your `.euv` script. 
-2.  **Submit a PR to EUVA-Library**: Open a Pull Request in the `EUVA-Library` repository.
-3.  **PR Content**: Your PR must include a link to your Gist and a brief explanation of the technical problem the script solves.
-4.  **Review**: Scripts will be reviewed based on the Ethical Code below.
+### 2. Decompiler Scripts
+Write C# scripts that hook into the decompiler pipeline. Your script becomes part of the engine. Drop a `.cs` file into the Scripts folder and it just works.
+How to create scripts: [Glass Engine Scripting](docs/Decompiler.md#4-glass-engine-c-scripting-integration)
 
-⚖️ **Code of Ethics and Submission Rules**
-We are researchers, not malicious actors. To maintain community standards and protect the project, all submissions must strictly follow these rules:
+### 3. Plugins
+EUVA has a plugin system via `IDetector` interface. Write a DLL, drop it in the Plugins folder the program picks it up via reflection. No core modifications needed.
 
-*   **Educational Purpose Only**: Scripts must be intended for studying algorithms, data unpacking, or security analysis.
-*   **No Piracy**: Submissions involving license bypass DRM, key generation, or data theft will be immediately rejected and banned.
-*   **Safety**: Scripts must not inject malicious code shellcodes, backdoors, etc.
+### 4. Patching Scripts (.euv)
+Share your `.euv` scripts via [EUVA-Library](https://github.com/pumpkin-bit/EUVA-Library). Create a Gist, submit a PR with a link and a short explanation.
 
+### 5. MCP Server Tools
+Extend the MCP server with new tools for AI integration. The server is plain Python easy to hack on.
 
-### 4. Pull Requests
-Found a bug or have a feature improvement for the core? 
-1. Fork the repository.
-2. Create a new branch for your feature or bugfix.
-3. Submit a Pull Request with a clear description of your changes.
+### 6. Anything else
+Documentation, tests, UI improvements, performance optimizations, new file format parsers all welcome.
 
-### 5. Reporting Issues
-If you found a bug or have a suggestion:
-* Check the existing Issues to see if it has already been reported.
-* If not, open a new Issue with steps to reproduce the bug.
+## How to submit
 
-## Contact:
+1. Fork the repo.
+2. Create a branch.
+3. Make your changes.
+4. Submit a PR with a clear description.
 
-If you have questions specifically about plugin architecture or want to discuss a new feature idea before writing code, feel free to reach out:
-Discord: fnafi_sus [link](https://discord.com/users/1193856523860975659)
+That's it. No templates, no committees, no week-long review cycles.
 
-GitHub Issues: Please use Issues for bug reports and technical errors. This helps other developers see the solution. Note: I’m most active during development sessions. If it’s a quick architectural question, Discord is best. If it's a bug, please open an Issue.
+## Reporting Issues
+
+- Check existing Issues first.
+- If it's new open an Issue with steps to reproduce.
+
+## Ethics
+
+We are researchers. All contributions must be for educational and security research purposes. No piracy, no malware, no license bypasses.
+
+## Contact
+
+- Discord: fnafi_sus [link](https://discord.com/users/1193856523860975659)
+- GitHub Issues for bugs and technical discussions
 
 ## License
-By contributing to this project, you agree that your contributions will be licensed under the **GPL v3 License**.
 
-Happy coding.
+By contributing, you agree that your work will be licensed under **GPL v3**.
+
+---
+
+EUVA is built by the community, for the community. Every PR matters.
