@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <strong>The next generation of binary reverse engineering. Slice through protection, recover semantics, and reclaim your code. </strong>
+  <strong>Open platform for reverse engineering.</strong>
 </p>
 
 ---
@@ -23,12 +23,8 @@
 
 ## 🔍 About EUVA
 
-
-
-EUVA is not just a hex editor and decompiler – it's a comprehensive **Static Analysis Environment** designed for the modern reverse engineer. Born from the need for high-performance, scriptable, and intelligent binary analysis, EUVA combines traditional graph-theory algorithms with cutting-edge AI-assisted semantic recovery.
-
-> [!IMPORTANT]
-> EUVA is designed with a "Local First" philosophy. Every advanced feature, including the AI agent, is entirely optional and can be configured to run through local providers like Ollama.
+EUVA isn't just a hex editor and decompiler; it's more of a reverse engineering platform that you customize, rather than having it customize. It's a platform you can plug into anything, and it won't object. We're committed to the community's interests and support maximum tool flexibility and quick integration with other analyzers perhaps your own, or perhaps industrial ones? We don't want to turn the tool into another decompiler, because decompiling isn't fun; IDA, Binija, and others can do it. But we're building something better, trying to build a better architecture, and that's probably our main goal.
+EUVA will evolve not on its own, but with the community.
 
 ---
 
@@ -45,25 +41,25 @@ By using EUVA, you acknowledge that you are solely responsible for your actions,
 
 ## ✨ Core Arsenal
 
-### 1. 🧬 High-Performance Hex Editor
-Experience binary data at its most primal level with a hardware-accelerated rendering engine. EUVA bypasses the standard WPF rendering pipeline to provide maximum performance.
+### 1. 🧬 Hex Editor
+Check out the capabilities of our hex editor, which also includes our DSL for replacing values. This was designed to make it easy to share patches, isn't it? Let's say you're creating something that requires a patch and want to share it with someone else. It's all quite simple: just send them our .euv script, the program applies the patch to the binary file, and you're done no headaches.
 
 
 <p align="center">
   <img src="./screen/screen_003.png" width="100%" alt="EUVA Hex Editor Showcase">
   <br>
-  <em>Buttery smooth scrolling and instant data lookup at native DPI.</em>
 </p>
 
 ### 2. ⚡ The Decompiler Engine
-Pipeline that elevates raw machine code into human-readable C/C++ logic.
+Perhaps one of the most important parts of our work is the decompiler it was designed and is being designed with the goal of conveying the meaning of the program's actions as best as possible. We strive to make it user-friendly, because digging through other decompilers is a pain because they act like translators, and you're searching for some kind of meaning in this madness. With our decompiler, the situation is also not simple, but we lower the entry barrier and try to reconstruct the decompiled code as humanly understandable as possible. Of course, we don't do this blindly, and there are limitations to everything, but it's still much better than reading raw C, which isn't even fully translated yet. This is not always convenient, so we are here to try to apply C++ abstractions to decompiled code and be satisfied with the result.
 
+example output: 
 <p align="center">
   <img src="./screen/screen_001.png" width="100%" alt="EUVA Decompiler Engine Showcase">
 </p>
 
 ### 3. 🔍 Advanced Disassembly
-High-performance logical listing for precise low-level analysis.
+If you are unsure about the decompiler's arguments, please double-check its results by viewing the disassembler.
 
 <p align="center">
   <img src="./screen/screen_005.png" width="100%">
@@ -71,16 +67,14 @@ High-performance logical listing for precise low-level analysis.
 
 
 ### 🧩 Extension & Analysis (Other)
-EUVA is built to be "omnivorous" to new analysis methods.
-
-<p align="center">
-  <img src="./screen/screen_006.png">
-</p>
-
-Yara rules and so on..
+If we approach this perfectly, we're not just talking about adding a Themida-like protector detection feature, but also about the decompiler itself. Incidentally, it also supports your patches thanks to C# scripts that are compiled dynamically using Roslyn. These can be called plugins for the decompiler, sort of calibrating it to your needs.
+This also applies to Yara rules. Perhaps it's the Virustotal integration we recently completed? We don't plan to stop there; we'll continue to develop in this area.
 
 ### 4. 🤖 AI-Agent Semantic Refactoring
-Bridge the gap between **Logic** and **Semantics**. Our experimental AI layer helps you identify variable names and function roles that are traditionally lost in compilation.
+So, we have a dual system: a built-in function in the AI ​​refactoring program where you specify your API key. Points must also comply with the OpenAI standard. This is a quick-intervention button if you don't plan to delve deeply into the process or if you need to conduct analysis discreetly, without the cloud, using local AI models.
+We also have integration with MCP, which is quite convenient because the model has access to everything it needs. It can read decompiled code and modify it according to your wishes, helping you learn and understand. You can get started with any service that supports MCP by simply configuring the required configuration file.
+MCP is suitable for those who want to delve deeper and are comfortable using the cloud. It's all your choice.
+I think we'll keep this flexible approach.
 
 > [!NOTE]
 > **Your Choice, Your Control**: The AI Agent is a "Bring Your Own Key" system. It supports Cloud LLMs (OpenAI, Claude, Groq) and Local LLMs (Ollama, LocalAI). **Privacy is paramount.**
@@ -89,7 +83,7 @@ Bridge the gap between **Logic** and **Semantics**. Our experimental AI layer he
 🟢 After AI (Semantic Refactor) 
 
 ---
-
+example output: 
 <p align="center">
   <img src="./screen/screen_002.png" width="100%" alt="EUVA Decompiler Engine Placeholder">
 </p>
@@ -115,6 +109,9 @@ Bridge the gap between **Logic** and **Semantics**. Our experimental AI layer he
 - **Scripting Decompiler** A C# scripting layer that allows you to write custom decompiler scripts and custom decompilation methods.
 - **AI Agents Decompiler** Bring your own API key Cloud or Local via Ollama to instantly restore human-readable variable names and code semantics without UI freezes.
 - **AI-Explain** Now AI can roughly explain decompiled code to you, giving you answers as high-quality as possible. (Experimental feat)
+- **MCP-Server** Understand compiled code with MCP server and AI
+- **Two-Decompiler** A nonlinear decompiler that creates a human-readable decompiled code using regex rules.
+- **VirusTotal** Implemented integration with VT automatic file scanning with your API
 
 
 ---
@@ -154,7 +151,6 @@ dotnet run -c Release
 1. Open a binary file via **File → Open** or drag-and-drop onto the window
 2. You can change bytes in a hex editor using an internal DSL language.
 3. Press `Ctrl+D` to open the **Disassembler**, `Ctrl+E` for the **Decompiler**
-4. *(Optional)* Configure your AI provider in **AI Settings** in the decompiler window to enable semantic refactoring
 
 
 ---
@@ -179,6 +175,8 @@ Dive deeper into the theory and mechanics:
 - 📖 [Decompiler](docs/Decompiler.md)
 - 📖 [Scripting-Decompiler](docs/Decompiler.md#19-glass-engine-c-scripting-integration)
 - 📖 [AI-Agents-Decompiler](docs/Decompiler.md#20-ai-assisted-semantic-integration)
+- 📖 [MCP-Server](docs/MCP.md)
+- 📖 [Two-Decompiler](docs/NonlinearDecompiler.md)
 
 ---
 ## ⌨️ Default Hotkey
@@ -212,23 +210,26 @@ Dive deeper into the theory and mechanics:
 
 ## ❓ FAQ
 
-**Q: Why use EUVA's built-in AI instead of an AI plugin for IDA Pro or Ghidra?**  
-**A:** In legacy tools, AI is often a "bolt-on" script that freezes the UI while it processes raw text and waits for a response. EUVA is a native, JIT application where AI is a first-class citizen. Our **Zero-Allocation pipeline** and direct AST-level semantic injection mean renames happen in milliseconds without a single interface stutter.
+**Q: Why use EUVA's built-in AI instead of AI plugins for IDA or Ghidra?**
+**A:** In legacy tools AI is just a "bolt-on" crutch that freezes the UI while scripts push text back and forth. In EUVA AI is part of the core. Our pipeline injects semantic-level changes in fast. It’s not a "plugin" it’s a symbiosis: the decompiler provides facts and the AI provides meaning. Zero stutters.
 
-**Q: Can I safely reverse malware or sensitive code without leaking it to cloud servers?**  
-**A:** Absolutely. EUVA follows a **Local First** philosophy. You can configure it to use **Ollama** or any local OpenAI-compatible provider. Your code stays on your machine, and your privacy is preserved.
+**Q: Will my code leak to the cloud?**
+**A:** Only if you want it to. EUVA follows a **Local First** philosophy. Connect **Ollama** or any local server and work completely offline. Your reverse is your secret.
 
-**Q: LLMs often hallucinate. How do I know the AI didn't invent logic or break my decompiler output?**  
-**A:** EUVA and the LLM work in a "Trust but Verify" loop. The AI is only allowed to propose renames for existing variables detected by our AST engine. Every change is clearly marked with `/* AI */` comments, and you can instantly roll back any function to its raw state using the **Reject AI** button.
+**Q: What if the AI starts hallucinating and lying about the code?**
+**A:** Of course, this is not excluded. We work on a "Trust but Verify" basis. The AI cannot invent logic it only suggests names for variables that actually exist in the code. All changes are marked with `/* AI */` comments. If you don't like it one click or a hotkey rolls everything back to the raw state.
 
-**Q: Can I force the AI to use specific naming conventions (e.g., Linux Kernel style or custom crypto terminology)?**  
-**A:** Yes. The **AI Settings** window allows you to customize the **System Prompt**. You can define exactly how the AI should perceive the code and which naming standards it should prioritize.
+**Q: How flexible is EUVA? Can I customize it for myself?**
+**A:** This is the main feature. EUVA is a platform.
+- Want your own naming rules? Edit the system prompt.
+- Want to connect your own analyzer in Python or Rust? Just read the temporary file that EUVA streams code to in real-time.
+- A scheme was added according to which the decompiler keeps everything in a temporary file, so you at least shouldn't have any problems - with integration or new entries
+**Integration happens at the snap of a finger not through a week of reading SDK docs.**
 
-**Q: Why switch to EUVA when giants like IDA Pro, Ghidra, or ImHex have existed for decades?**  
-**A:** EUVA doesn't carry of legacy code. 
-- **IDA/Ghidra**: Monolithic environments where modern features like LLM integration feel sluggish due to complex Python/Java bridges.
-- **ImHex**: An incredible hex editor and pattern parser, but not a full-scale reverse engineering environment with a specialized decompiler pipeline.
-- **EUVA**: Specifically engineered for the era of AI and high-performance data-flow analysis. It delivers industrial-grade power with the agility of a modern C# native app.
+**Q: Why should I use EUVA if I have IDA Ghidra or Binary Ninja?**
+**A:** Because these are heavy monolithic programs
+- **IDA/Ghidra:** Heavy clunky with APIs that make you suffer.
+- **EUVA:** Built from scratch for the era of AI and rapid development. We aren't afraid to throw out old stuff (like we did with graphs) to give you a tool that follows your mood instead of dictating its own rules. **We are building this together with the community not behind closed doors.**
 
 ---
 
@@ -247,7 +248,6 @@ Dive deeper into the theory and mechanics:
 
 We welcome the street-smart netrunners and corporate-grad researchers alike.
 
-We welcome street-smart netrunners and corporate-grad researchers alike. 
 
 ### Quick Start
 1. **Read first:** Please read our [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md) before participating.
@@ -272,7 +272,7 @@ EUVA is free software released under the **GNU General Public License v3.0**.
 GNU GENERAL PUBLIC LICENSE
 Version 3, 29 June 2007
 
-Copyright (C) 2026 pumpkin-bit (falker) & EUVA Contributors
+Copyright (C) 2026 EUVA Contributors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
