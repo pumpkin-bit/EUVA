@@ -13,6 +13,7 @@
         MinHeight="600" MinWidth="1000"
         Background="#1E1E2E"
         WindowStartupLocation="CenterScreen"
+        WindowState="Maximized" 
         AllowDrop="True"
         Drop="Window_Drop"
         DragOver="Window_DragOver">
