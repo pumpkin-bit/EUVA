@@ -1,0 +1,47 @@
+# EUVA example teme vscode dark+-like
+# Format: Key = R, G, B, A
+
+Background            =  30,  30,  30, 255
+Sidebar               =  37,  37,  38, 255
+Toolbar               =  51,  51,  51, 255
+Border                =  60,  60,  60, 255
+SeparatorLine         =  68,  68,  68, 255
+ForegroundPrimary     = 212, 212, 212, 255
+ForegroundSecondary   = 156, 156, 156, 255
+ForegroundDisabled    = 100, 100, 100, 255
+
+MenuBackground        =  37,  37,  38, 255
+MenuForeground        = 204, 204, 204, 255
+MenuHighlight         =  64,  64,  65, 255
+
+Hex_Background        =  30,  30,  30, 255
+HexOffset             = 133, 133, 133, 255
+Hex_OffsetForeground  = 133, 133, 133, 255
+Hex_ByteActive        = 212, 212, 212, 255
+Hex_ByteNull          =  80,  80,  80, 255
+Hex_ByteSelected      = 255, 255, 255, 255
+Hex_ByteHighlight     =  38,  79, 120,  90
+Hex_AsciiPrintable    = 181, 206, 168, 255
+Hex_AsciiNonPrintable =  80,  80,  80, 255
+Hex_ByteFF            = 244, 135, 113, 255
+Hex_ByteControl       = 206, 145, 120, 255
+Hex_ByteWhitespace    = 220, 220, 170, 255
+Hex_ByteDigit         = 181, 206, 168, 255
+Hex_ByteAlpha         =  78, 201, 176, 255
+Hex_ByteSymbol        = 212, 212, 212, 255
+Hex_ByteHigh          = 197, 134, 192, 255
+
+TreeBackground        =  37,  37,  38, 255
+TreeText              = 204, 204, 204, 255
+TreeItemHighlight     =  42,  45,  46, 255
+TreeIconSection       =  79, 193, 255, 255
+TreeIconField         =  78, 201, 176, 255
+
+PropertyBackground    =  37,  37,  38, 255
+PropertyKey           = 156, 220, 254, 255
+PropertyValue         = 206, 145, 120, 255
+
+ConsoleBackground     =  24,  24,  24, 255
+ConsoleForeground     = 204, 204, 204, 255
+ConsoleError          = 244, 135, 113, 255
+ConsoleSuccess        = 181, 206, 168, 255
