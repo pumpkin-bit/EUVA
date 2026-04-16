@@ -1011,11 +1011,11 @@ public class VirtualizedHexView : FrameworkElement
         else if (action == EUVAAction.CopyCArray) { CopyAsCArray(); e.Handled = true; }
         else if (action == EUVAAction.CopyPlainText) { CopyAsPlainText(); e.Handled = true; }
 
-        if (e.Key == Key.F3 && Keyboard.Modifiers == ModifierKeys.Shift)
+        if (action == EUVAAction.ViewYaraMatches)
         {
             if (JumpToNextYara()) e.Handled = true;
         }
-        else if (e.Key == Key.F3 && Keyboard.Modifiers == ModifierKeys.None)
+        else if (action == EUVAAction.ViewBytes)
         {
             JumpToNextChange();
             e.Handled = true;

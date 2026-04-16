@@ -7,3 +7,12 @@ CopyHex        = Control + C
 CopyCArray     = Control + Shift + C
 CopyPlainText  = Control + Alt + C
 
+Undo           = Control + Z
+FullUndo       = Control + Shift + Z
+
+OpenDisassembler = Control + D
+OpenDecompiler   = Control + E
+
+RunScript      = F5
+ViewBytes      = F3
+ViewYaraMatches = Shift + F3

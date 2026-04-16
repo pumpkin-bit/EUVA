@@ -50,6 +50,12 @@ public static class HotkeyManager
         _bindings[(ModifierKeys.Control | ModifierKeys.Shift, Key.Z)] = EUVAAction.FullUndo;
         _bindings[(ModifierKeys.Control, Key.C)] = EUVAAction.CopyHex;
         _bindings[(ModifierKeys.Control | ModifierKeys.Shift, Key.C)] = EUVAAction.CopyCArray;
+        _bindings[(ModifierKeys.Control | ModifierKeys.Alt, Key.C)] = EUVAAction.CopyPlainText;
+        _bindings[(ModifierKeys.Control, Key.D)] = EUVAAction.OpenDisassembler;
+        _bindings[(ModifierKeys.Control, Key.E)] = EUVAAction.OpenDecompiler;
+        _bindings[(ModifierKeys.None, Key.F5)] = EUVAAction.RunScript;
+        _bindings[(ModifierKeys.None, Key.F3)] = EUVAAction.ViewBytes;
+        _bindings[(ModifierKeys.Shift, Key.F3)] = EUVAAction.ViewYaraMatches;
         MainWindow.Instance?.Log("[System] Default hotkeys loaded.", Brushes.Gray);
     }
 
@@ -90,7 +96,9 @@ public enum EUVAAction
     None,
     NavInspector, NavSearch, NavDetections, NavProperties,
     CopyHex, CopyCArray, CopyPlainText,
-    Undo, FullUndo
+    Undo, FullUndo,
+    OpenDisassembler, OpenDecompiler,
+    RunScript, ViewBytes, ViewYaraMatches
 }
 public readonly record struct SearchResult(string Offset, string Size, string Value, string Context);
 public readonly record struct InspectorItem(string Name, string Value, string RawHex);
@@ -1602,16 +1610,24 @@ catch (Exception iatEx)
         if (action == EUVAAction.Undo) { PerformUndo(); e.Handled = true; return; }
         if (action == EUVAAction.FullUndo) { PerformFullUndo(); e.Handled = true; return; }
 
-        if (key == Key.D && Keyboard.Modifiers == ModifierKeys.Control)
+        if (action == EUVAAction.OpenDisassembler)
         {
             MenuDisassembler_Click(this, new RoutedEventArgs());
             e.Handled = true;
             return;
         }
 
-        if (key == Key.E && Keyboard.Modifiers == ModifierKeys.Control)
+        if (action == EUVAAction.OpenDecompiler)
         {
             MenuDecompiler_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (action == EUVAAction.RunScript && !string.IsNullOrEmpty(_activeScriptPath))
+        {
+            Log("[Manual] Running script...", Brushes.DeepSkyBlue);
+            _ = RunParallelEngine(_activeScriptPath);
             e.Handled = true;
             return;
         }
@@ -1634,11 +1650,6 @@ catch (Exception iatEx)
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
-        if (e.Key == Key.F5 && !string.IsNullOrEmpty(_activeScriptPath))
-        {
-            Log("[Manual] F5 Pressed. Forcing engine...", Brushes.DeepSkyBlue);
-            _ = RunParallelEngine(_activeScriptPath);
-        }
     }
 
     private void MenuThemeSelect_Click(object sender, RoutedEventArgs e)
