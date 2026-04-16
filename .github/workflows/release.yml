@@ -1,12 +1,11 @@
 name: Release App
-
 on:
   push:
     tags:
       - '*'
 
 permissions:
-  contents: write 
+  contents: write
 
 jobs:
   release:
