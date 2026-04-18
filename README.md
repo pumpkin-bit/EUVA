@@ -112,6 +112,23 @@ example output:
 - **Two-Decompiler** A nonlinear decompiler that creates a human-readable decompiled code using regex rules.
 - **VirusTotal** Implemented integration with VT automatic file scanning with your API
 
+---
+
+
+## 📦 Installation
+
+Download from [the releases](https://github.com/Euva-Project/EUVA/releases/tag/1.5-stable) or install EUVA via winget
+
+- **Portable** - Download the version without installation to your system directories
+- **Installer** - Download the version with installation to your system directories
+- **Winget** - Download the EUVA Installer
+
+winget use: 
+```bash
+winget install Euva-Project.EUVA
+```
+
+Or build the program from the source files using the guide below.
 
 ---
 
@@ -129,10 +146,9 @@ Before building, make sure you have the following installed:
 > [!NOTE]
 > EUVA is a **Windows-only** application built on WPF. Linux/macOS are not currently supported.
 
-### Installation
+### Build from source
 ```bash
-# 1. Clone the repository
-git clone https://github.com/pumpkin-bit/EUVA.git
+# 1. Go to the main directory
 cd EUVA/EUVA.UI
 
 # 2. Restore dependencies
@@ -141,7 +157,7 @@ dotnet restore
 # 3. Build in Release mode
 dotnet build -c Release
 
-# 4. Run (optional, or launch the compiled binary directly)
+# 4. Run (optional, or launch the compiled binary)
 dotnet run -c Release
 ```
 
