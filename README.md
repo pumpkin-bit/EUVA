@@ -266,7 +266,7 @@ We welcome the street-smart netrunners and corporate-grad researchers alike.
 
 ### Quick Start
 1. **Read first:** Please read our [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md) before participating.
-2. **Found a bug?** Open an [Issue](https://github.com/pumpkin-bit/EUVA/issues) with a detailed description and, if possible, a sample binary.
+2. **Found a bug?** Open an [Issue](https://github.com/Euva-Project/EUVA/issues) with a detailed description and, if possible, a sample binary.
 3. **Want to code?** Check out the [CONTRIBUTING](CONTRIBUTING.md) guide for build instructions and PR templates.
 
 **PRs Welcome:** Found a bug or optimized a pipeline stage? Submit a PR! 🚀
