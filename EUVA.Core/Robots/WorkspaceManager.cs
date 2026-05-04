@@ -69,7 +69,6 @@ public static class WorkspaceManager
             var parts = ann.Split('|', 5);
             if (parts.Length < 5) continue;
             
-            string role = parts[0];
             string action = parts[3];
             string context = parts[4];
             

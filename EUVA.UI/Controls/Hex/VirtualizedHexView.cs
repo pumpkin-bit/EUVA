@@ -528,7 +528,6 @@ public class VirtualizedHexView : FrameworkElement
         long selMax = hasSelection ? SelectionMax : -1;
         int hexCellStepPx  = (int)Math.Round(3 * _charWidth * _pixelsPerDip);
         int hexCellWidthPx = (int)Math.Round(_charWidth * 2.0 * _pixelsPerDip);
-        int groupW         = hexCellStepPx * 8;  
 
         for (int i = 0; i < bytesToDraw; i++)
         {

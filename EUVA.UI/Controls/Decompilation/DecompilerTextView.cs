@@ -299,10 +299,9 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
 
         long funcAddr = layout.Nodes.Length > 0 ? layout.Nodes[0].StartOffset : 0;
         string originalName = $"sub_{funcAddr:X}";
-        string funcName = originalName;
-
         if (pseudoGen != null && pseudoGen.TryGetGlobalRename(originalName, out var renamed))
-            funcName = renamed.Name; 
+        {
+        }
 
         var primaryCtx = pseudoGen?.GetPrimaryClassContext();
         bool isClassMethod = primaryCtx != null && primaryCtx.Value.Confidence >= 0.8;

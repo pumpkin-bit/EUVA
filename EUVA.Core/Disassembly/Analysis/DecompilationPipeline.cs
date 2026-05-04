@@ -282,7 +282,6 @@ public sealed class DecompilationPipeline
             if (_fingerprintMatch.IsHigh)
             {
                 funcName = $"{_fingerprintMatch.Record.Lib}::{_fingerprintMatch.Record.Name}";
-                isLibraryFunction = true;
                 if (LastSignature != null)
                     LastSignature.Name = funcName;
             }

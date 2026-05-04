@@ -769,7 +769,6 @@ public sealed class IrLifter
         var rdi = IrOperand.Reg(_bitness == 64 ? Register.RDI : Register.EDI, ptrSize);
         var rsi = IrOperand.Reg(_bitness == 64 ? Register.RSI : Register.ESI, ptrSize);
         var rcx = IrOperand.Reg(_bitness == 64 ? Register.RCX : Register.ECX, ptrSize);
-        var rax = IrOperand.Reg(_bitness == 64 ? Register.RAX : Register.EAX, ptrSize);
         var retReg = IrOperand.Reg(_bitness == 64 ? Register.RAX : Register.EAX, ptrSize);
 
         int sizePerIter = instr.Mnemonic switch

@@ -87,11 +87,6 @@ public class FSGDetectorPlugin : IDetectorPlugin
             if (sections != null)
             {
 
-                var sectionNames = sections.Children
-                    .Select(c => c.Name.ToUpperInvariant())
-                    .ToList();
-
-
                 bool hasSmallSections = sections.Children
                     .Any(s => s.Size.HasValue && s.Size < SmallSectionThreshold);
 

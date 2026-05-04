@@ -117,8 +117,6 @@ public static class ExpressionSimplifier
 
         if (instr.Sources.Length == 1)
         {
-            ref var src = ref instr.Sources[0];
-  
         }
 
         return false;

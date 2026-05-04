@@ -1160,10 +1160,9 @@ public sealed class PseudocodeEmitter
         while (_userRenames.TryGetValue(name, out var renamed) && maxDepth-- > 0)
         {
             isAi = renamed.IsAiGenerated;
-            return renamed.Name + (isAi ? " /* AI */" : "");
+            name = renamed.Name;
         }
-        isAi = false;
-        return name;
+        return name + (isAi ? " /* AI */" : "");
     }
 
     private string ApplyRename(string name) => GetRenamed(name, out _);

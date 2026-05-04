@@ -178,8 +178,6 @@ public static class TransformationPasses
                     var v1 = list[i]; var v2 = list[j];
                     for (int b = 0; b < blocks.Length; b++)
                     {
-                        bool b1 = liveIn[b].Contains(v1) || liveOut[b].Contains(v1);
-                        bool b2 = liveIn[b].Contains(v2) || liveOut[b].Contains(v2);
                     }
                 }
             }

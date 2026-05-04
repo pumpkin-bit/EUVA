@@ -1153,8 +1153,7 @@ public partial class MainWindow
                     var annPath = await Task.Run(() => admin.RunPipelineAsync(fileOffset, linearSource));
                     string dumpPath = annPath.Replace(".annotations", ".dump");
 
-                    var annLines = EUVA.Core.Robots.WorkspaceManager.ReadAnnotations(dumpPath);
-                    //LogMessage($"[Decomp] Non-Linear Pipeline finished. Annotations file: {annPath} ({annLines.Length} entries)");
+                    //LogMessage($"[Decomp] Non-Linear Pipeline finished. Annotations file: {annPath}");
 
                     try
                     {
@@ -1335,9 +1334,7 @@ public partial class MainWindow
                     var importDir = dataDirs.Children.ElementAtOrDefault(1);
                     if (importDir != null)
                     {
-                        var rvaField = importDir.Children.FirstOrDefault(f => f.Name == "RVA") 
-                                     ?? importDir.Children.FirstOrDefault(f => f.Name == "VirtualAddress");
-                        if (rvaField?.Value != null) importRva = Convert.ToUInt32(rvaField.Value);
+                        // Found import directory
                     }
                 }
             }
