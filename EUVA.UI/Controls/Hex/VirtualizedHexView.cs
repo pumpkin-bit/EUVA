@@ -902,7 +902,10 @@ public class VirtualizedHexView : FrameworkElement
         if (next == null)
         {
             long minVal = long.MaxValue;
-            foreach (long o in snap) if (o < minVal) minVal = o;
+            foreach (long o in snap)
+            {
+                if (o < minVal) minVal = o;
+            }
             if (minVal != long.MaxValue) next = minVal;
         }
         if (next.HasValue)
@@ -940,7 +943,10 @@ public class VirtualizedHexView : FrameworkElement
         if (next == null)
         {
             long minVal = long.MaxValue;
-            foreach (long o in snap) if (o < minVal) minVal = o;
+            foreach (long o in snap)
+            {
+                if (o < minVal) minVal = o;
+            }
             if (minVal != long.MaxValue) next = minVal;
         }
         if (next.HasValue)

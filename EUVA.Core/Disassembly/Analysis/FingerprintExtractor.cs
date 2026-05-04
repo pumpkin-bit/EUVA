@@ -358,16 +358,18 @@ public static class FingerprintMatcher
         for (int j = 0; j <= lenB; j++) dp[0, j] = j * 2;
 
         for (int i = 1; i <= lenA; i++)
-        for (int j = 1; j <= lenB; j++)
         {
-            int   maxVal  = Math.Max(Math.Abs(a[i-1]), Math.Abs(b[j-1]));
-            float diff    = maxVal == 0 ? 0f : (float)Math.Abs(a[i-1] - b[j-1]) / maxVal;
-            
-            int   subCost = diff <= 0.30f ? 0 : 1; 
+            for (int j = 1; j <= lenB; j++)
+            {
+                int   maxVal  = Math.Max(Math.Abs(a[i-1]), Math.Abs(b[j-1]));
+                float diff    = maxVal == 0 ? 0f : (float)Math.Abs(a[i-1] - b[j-1]) / maxVal;
+                
+                int   subCost = diff <= 0.30f ? 0 : 1; 
 
-            dp[i, j] = Math.Min(
-                Math.Min(dp[i-1, j] + 2, dp[i, j-1] + 2),
-                dp[i-1, j-1] + subCost);
+                dp[i, j] = Math.Min(
+                    Math.Min(dp[i-1, j] + 2, dp[i, j-1] + 2),
+                    dp[i-1, j-1] + subCost);
+            }
         }
 
         return dp[lenA, lenB];

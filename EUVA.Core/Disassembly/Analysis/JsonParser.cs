@@ -188,7 +188,10 @@ public static class SignatureCache
         {
             if (chain.Sequence.Count == 0) continue;
             int matchCount = 0;
-            foreach (var api in chain.Sequence) if (calledApis.Contains(api)) matchCount++;
+            foreach (var api in chain.Sequence)
+            {
+                if (calledApis.Contains(api)) matchCount++;
+            }
 
             bool matched = chain.RequireAll ? matchCount == chain.Sequence.Count : matchCount >= Math.Max(1, chain.MinMatches);
             if (matched) return chain.FunctionName;

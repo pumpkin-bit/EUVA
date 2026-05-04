@@ -133,13 +133,25 @@ public sealed class PseudocodeGenerator
     public Dictionary<ulong, string> ResolvedImports
     {
         get => _imports;
-        set { _imports.Clear(); foreach (var kv in value) _imports[kv.Key] = kv.Value; _pipeline = null; }
+        set
+        {
+            _imports.Clear();
+            foreach (var kv in value)
+                _imports[kv.Key] = kv.Value;
+            _pipeline = null;
+        }
     }
 
     public Dictionary<long, string> ResolvedStrings
     {
         get => _strings;
-        set { _strings.Clear(); foreach (var kv in value) _strings[kv.Key] = kv.Value; _pipeline = null; }
+        set
+        {
+            _strings.Clear();
+            foreach (var kv in value)
+                _strings[kv.Key] = kv.Value;
+            _pipeline = null;
+        }
     }
 
     
