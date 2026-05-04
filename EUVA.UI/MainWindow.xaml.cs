@@ -528,7 +528,6 @@ try
         
         if (peOffset > 0 && peOffset + 26 < headerData.Length)
         {
-            ushort peSig = BitConverter.ToUInt16(headerData, peOffset);
             ushort magic = BitConverter.ToUInt16(headerData, peOffset + 24);
             
 

@@ -77,7 +77,7 @@ public static class StructReconstructor
             
             foreach (var offset in firstBaseOffsets.Keys.OrderBy(k => k))
             {
-                var (bitSize, count) = firstBaseOffsets[offset];
+                var (bitSize, _) = firstBaseOffsets[offset];
                 string fieldName = offset < 0 ? $"m_prev_{Math.Abs(offset):X}" : $"field_{offset:X}";
                 var field = new RecoveredField(offset, fieldName, bitSize);
                 

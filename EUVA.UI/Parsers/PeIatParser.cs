@@ -36,7 +36,7 @@ namespace EUVA.UI.Parsers
                 uint peSignature = reader.ReadUInt32();
                 if (peSignature != 0x00004550) return false; 
 
-                ushort machine = reader.ReadUInt16(); 
+                reader.ReadUInt16(); // machine
                 ushort numberOfSections = reader.ReadUInt16();
                 reader.BaseStream.Position += 16; 
 
@@ -100,8 +100,8 @@ namespace EUVA.UI.Parsers
                 while (true)
                 {
                     uint originalFirstThunk = reader.ReadUInt32(); 
-                    uint timeDateStamp = reader.ReadUInt32();
-                    uint forwarderChain = reader.ReadUInt32();
+                    reader.ReadUInt32(); // timeDateStamp
+                    reader.ReadUInt32(); // forwarderChain
                     uint nameRva = reader.ReadUInt32();
                     uint firstThunk = reader.ReadUInt32();
 
