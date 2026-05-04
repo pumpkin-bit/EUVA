@@ -342,12 +342,6 @@ public static class ControlFlowStructurer
                     cond = IrCondition.Equal;
                 else if (cond == IrCondition.UnsignedAbove) 
                     cond = IrCondition.NotEqual;
-                else if (cond == IrCondition.UnsignedAboveEq) 
-                {
-                }
-                else if (cond == IrCondition.UnsignedBelow) 
-                {
-                }
             }
         }
 

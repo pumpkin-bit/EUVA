@@ -325,9 +325,6 @@ public partial class MainWindow
                     if (_mapper?.RootStructure != null)
                     {
                         var expDir = _mapper.RootStructure.FindByPath("Data Directories", "Export Directory");
-                        if (expDir != null)
-                        {
-                        }
                     }
 
                     var discoverer = new FunctionDiscoverer();

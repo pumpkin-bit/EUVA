@@ -180,9 +180,6 @@ public static class TransformationPasses
                     {
                         bool b1 = liveIn[b].Contains(v1) || liveOut[b].Contains(v1);
                         bool b2 = liveIn[b].Contains(v2) || liveOut[b].Contains(v2);
-                        if (b1 && b2)
-                        {
-                        }
                     }
                 }
             }

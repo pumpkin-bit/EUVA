@@ -86,14 +86,14 @@ public sealed class CfgScanner
                 {
                     case FlowControl.ConditionalBranch:
                         long t1 = (long)instr.NearBranchTarget;
-                        if (CheckAndEnqueue(t1, queue, leaders, executableSections)) { }
-                        if (CheckAndEnqueue(nextIP, queue, leaders, executableSections)) { }
+                        CheckAndEnqueue(t1, queue, leaders, executableSections);
+                        CheckAndEnqueue(nextIP, queue, leaders, executableSections);
                         isTerminal = true;
                         break;
 
                     case FlowControl.UnconditionalBranch:
                         long t2 = (long)instr.NearBranchTarget;
-                        if (CheckAndEnqueue(t2, queue, leaders, executableSections)) { }
+                        CheckAndEnqueue(t2, queue, leaders, executableSections);
                         isTerminal = true;
                         break;
 
