@@ -312,7 +312,7 @@ public sealed class DecompilerTextView : FrameworkElement, IDisposable
         if (isClassMethod)
         {
             string className = $"Entity_{funcAddr:X}";
-            if (pseudoGen != null && pseudoGen.TryGetGlobalRename("this_class", out var renamedClass))
+            if (pseudoGen.TryGetGlobalRename("this_class", out var renamedClass))
                 className = renamedClass.Name;
 
             lines.Add(new PseudocodeLine($"class {className} /* mapped from {classVarName} */ {{", new[] { 

@@ -507,7 +507,7 @@ public partial class MainWindow
         if (rva == 0) return;
 
         var discoverer = new FunctionDiscoverer();
-        var parent = discoverer.GetParentFunction(_allFunctions, rva != 0 ? rva : fileOffset); 
+        var parent = discoverer.GetParentFunction(_allFunctions, rva); 
         
         if (parent == null)
             parent = _allFunctions.FirstOrDefault(f => fileOffset >= f.FileOffset && fileOffset < f.EndRva);

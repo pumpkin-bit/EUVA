@@ -59,7 +59,7 @@ public static class NamingConventions
         return op.Kind switch
         {
             IrOperandKind.StackSlot => GetStackVariableName(op.StackOffset),
-            _ => (op.Kind == IrOperandKind.Register && op.Register == Register.None) || op.SsaVersion != 0 
+            _ => op.SsaVersion != 0 
                 ? $"tmp_{Math.Abs(op.SsaVersion)}" : "tmp"
         };
     }
